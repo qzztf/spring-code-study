@@ -13,4 +13,10 @@
 
     <description>Spring 各组件之间的关系</description>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+    </dependencies>
 </project>
