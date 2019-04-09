@@ -85,7 +85,8 @@ Spring将各种资源统一抽象为`Resource`,并使用`ResourceLoader`来定�
 
 #### 常用的`Resource`实现类
 
-#####. ClassPathResource
+##### ClassPathResource
+
 类路径资源的实现类。使用给定的类加载器或给定的类来加载资源。如果类路径资源驻留在文件系统中，而不是JAR中的资源，则支持`java.io.File`方式来加载。该类始终支持URL方式来加载。
 
 使用示例：
@@ -135,3 +136,43 @@ Exception in thread "main" java.io.FileNotFoundException: class path resource [r
 ```
 
 ##### FileSystemResource
+
+处理`java.io.File`和`java.nio.file.Path`文件系统的资源实现。支持作为一个文件，也可以作为一个URL。扩展自`WritableResource`接口。
+
+**注意:从Spring Framework 5.0开始，这个资源实现使用NIO.2 API进行读/写交互。从5.1开始，它可能使用一个`java.nio.file.Path`句柄实例化，在这种情况下，它将通过NIO.2执行所有文件系统交互，
+只能通过`getFile()`来返回`File`**
+
+
+### ResourceLoader
+
+加载资源的策略接口(例如类路径或文件系统资源)。`org.springframework.context.ApplicationContext`需要提供此功能，以及扩展`org.springframework.core.io.support.ResourcePatternResolver`支持。
+`DefaultResourceLoader`是一个独立的实现，可以在`ApplicationContext`之外使用，也可以由`ResourceEditor`使用。
+当在`ApplicationContext`中使用时，可以使用特定上下文的资源加载策略从字符串填充Resource类型和Resource数组的Bean属性。
+
+ResourceLoader提供的方法：
+
+- Resource getResource(String location)：返回指定资源位置的资源句柄。
+句柄应该始终是一个可重用的资源描述符，允许多次调用`Resource#getInputStream()`。
+必须支持完全限定的url，例如。“file:C:/test.dat”。
+必须支持类路径伪url，例如。“classpath:test.dat”。
+应该支持相对文件路径，例如。“WEB-INF/test.dat”。(这是基于特定实现的，通常由`ApplicationContext`实现类提供。)
+**注意，资源句柄并不意味着资源实际存在;还是需要调用`Resource#exists`检查资源是否存在**
+
+#### `ResourcePatternResolver`子接口
+
+用于将位置模式(例如，ant样式的路径模式)解析为资源对象的策略接口。
+这是ResourceLoader接口的扩展。可以检查传入的ResourceLoader(例如，当运行在上下文中时，通过`ResourceLoaderAware`传入的`ApplicationContext`)是否也实现了这个接口。
+`PathMatchingResourcePatternResolver`是一个独立的实现，可以在ApplicationContext之外使用，`ResourceArrayPropertyEditor`也使用它来填充bean的`Resource` 数组属性。
+可以与任何类型的位置模式(例如`/WEB-INF/*-context.xml`):输入模式必须匹配策略实现。这个接口只指定转换方法，而不是特定的模式格式。
+这个接口还为类路径中所有匹配的资源提供了一个新的资源前缀`classpath*:`。注意，在这种情况下，资源位置应该是一个没有占位符的路径(例如 `/beans.xml`);JAR文件或类目录可以包含多个同名文件
+
+此接口提供的方法：
+
+- Resource[] getResources(String locationPattern)：将给定的位置模式解析为资源对象。应该尽可能避免指向相同物理资源的重复资源项。结果应该具有set语义
+
+#### 常用实现类
+
+##### DefaultResourceLoader
+
+`ResourceLoader`接口的默认实现。由`ResourceEditor`使用，并作为`org.springframework.context.support.AbstractApplicationContext`的基类。也可以单独使用。
+如果位置值是URL，则返回UrlResource;如果非URL路径或“classpath:”伪URL，则返回ClassPathResource。
