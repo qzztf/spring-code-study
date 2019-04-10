@@ -16,7 +16,7 @@ public class PathMatchingResourcePatternResolverDemo {
         PathMatchingResourcePatternResolver resourceLoader = new PathMatchingResourcePatternResolver();
         //读取file文件
         System.out.println("------------------------------------读取多个文件------------------");
-        Resource[] resources = resourceLoader.getResources("classpath*:*.xml");
+        Resource[] resources = resourceLoader.getResources("classpath:app*.xml");
         for (Resource resource : resources) {
 
             System.out.println("资源文件是否存在：" + resource.exists());
