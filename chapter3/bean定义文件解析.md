@@ -176,3 +176,183 @@ ResourceLoader提供的方法：
 
 `ResourceLoader`接口的默认实现。由`ResourceEditor`使用，并作为`org.springframework.context.support.AbstractApplicationContext`的基类。也可以单独使用。
 如果位置值是URL，则返回UrlResource;如果非URL路径或“classpath:”伪URL，则返回ClassPathResource。
+
+这里提到了URL, URL 是用来在互联网中描述一个资源位置的，主要包括协议，主机，路径等组成部分。
+
+Spring 支持的URL:
+
+- classpath: 表示classpath下的资源文件
+- file： 表示文件系统中的资源文件
+- jar： 表示jar包中的资源文件
+- war： 表示war包中的资源文件
+- zip：zip包中的资源文件
+- wsjar： WebSphere jar文件
+- vfszip：JBoss jar文件
+- vfsfile：JBoss 文件系统
+- vfs：通用的JBoss VFS 文件
+
+使用示例：
+
+```java
+DefaultResourceLoader resourceLoader = new DefaultResourceLoader();
+//读取file文件
+System.out.println("------------------------------------读取本地文件------------------" );
+Resource resource = resourceLoader.getResource("file:///F:\\spring-code-study\\chapter3\\target\\classes/app.xml");
+System.out.println("资源文件是否存在：" + resource.exists());
+System.out.println("资源文件是否是文件：" + resource.isFile());
+System.out.println("资源文件是否可读：" + resource.isReadable());
+//        System.out.println("资源文件是否可写：" + ((FileSystemResource)resource).isWritable());
+System.out.println("资源文件名称：" + resource.getFilename());
+System.out.println("资源文件：" + resource.getFile());
+System.out.println("资源文件描述：" + resource.getDescription());
+System.out.println("资源文件URL：" + resource.getURL());
+System.out.println("资源文件URI：" + resource.getURI());
+System.out.println("资源文件长度：" + resource.contentLength());
+System.out.println("资源文件最后修改时间：" + new Date(resource.lastModified()));
+System.out.println("资源文件数据：" + new String(resource.getInputStream().readAllBytes()));
+
+//读取jar包中的文件
+System.out.println("------------------------------------读取jar文件----------------------" );
+resource = resourceLoader.getResource("jar:file:///F:\\spring-code-study\\chapter3\\target\\chapter3-1.0-SNAPSHOT.jar!/app.xml");
+System.out.println("资源文件是否存在：" + resource.exists());
+System.out.println("资源文件是否是文件：" + resource.isFile());
+System.out.println("资源文件是否可读：" + resource.isReadable());
+//        System.out.println("资源文件是否可写：" + ((FileSystemResource)resource).isWritable());
+System.out.println("资源文件名称：" + resource.getFilename());
+//        System.out.println("资源文件：" + resource.getFile());
+System.out.println("资源文件描述：" + resource.getDescription());
+System.out.println("资源文件URL：" + resource.getURL());
+//        System.out.println("资源文件URI：" + resource.getURI());
+System.out.println("资源文件长度：" + resource.contentLength());
+System.out.println("资源文件最后修改时间：" + new Date(resource.lastModified()));
+System.out.println("资源文件数据：" + new String(resource.getInputStream().readAllBytes()));
+
+//读取网络文件
+System.out.println("------------------------------------读取网络文件-----------------" );
+resource = resourceLoader.getResource("https://raw.githubusercontent.com/qzzsunly/spring-code-study/master/chapter3/src/main/resources/app.xml");
+System.out.println("资源文件是否存在：" + resource.exists());
+System.out.println("资源文件是否是文件：" + resource.isFile());
+System.out.println("资源文件是否可读：" + resource.isReadable());
+//        System.out.println("资源文件是否可写：" + ((FileSystemResource)resource).isWritable());
+System.out.println("资源文件名称：" + resource.getFilename());
+//        System.out.println("资源文件：" + resource.getFile());
+System.out.println("资源文件描述：" + resource.getDescription());
+System.out.println("资源文件URL：" + resource.getURL());
+//        System.out.println("资源文件URI：" + resource.getURI());
+System.out.println("资源文件长度：" + resource.contentLength());
+System.out.println("资源文件最后修改时间：" + new Date(resource.lastModified()));
+System.out.println("资源文件数据：" + new String(resource.getInputStream().readAllBytes()));
+
+
+//读取classpath下的文件
+System.out.println("------------------------------------读取classpath文件-----------------" );
+resource = resourceLoader.getResource("classpath:app.xml");
+System.out.println("资源文件是否存在：" + resource.exists());
+System.out.println("资源文件是否是文件：" + resource.isFile());
+System.out.println("资源文件是否可读：" + resource.isReadable());
+//        System.out.println("资源文件是否可写：" + ((FileSystemResource)resource).isWritable());
+System.out.println("资源文件名称：" + resource.getFilename());
+//        System.out.println("资源文件：" + resource.getFile());
+System.out.println("资源文件描述：" + resource.getDescription());
+System.out.println("资源文件URL：" + resource.getURL());
+//        System.out.println("资源文件URI：" + resource.getURI());
+System.out.println("资源文件长度：" + resource.contentLength());
+System.out.println("资源文件最后修改时间：" + new Date(resource.lastModified()));
+System.out.println("资源文件数据：" + new String(resource.getInputStream().readAllBytes()));
+
+```
+
+测试结果：
+
+```plain
+------------------------------------读取本地文件------------------
+资源文件是否存在：true
+资源文件是否是文件：true
+资源文件是否可读：true
+资源文件名称：app.xml
+资源文件：F:\spring-code-study\chapter3\target\classes\app.xml
+资源文件描述：URL [file:/F:/spring-code-study/chapter3/target/classes/app.xml]
+资源文件URL：file:/F:/spring-code-study/chapter3/target/classes/app.xml
+资源文件URI：file:/F:/spring-code-study/chapter3/target/classes/app.xml
+资源文件长度：307
+资源文件最后修改时间：Mon Apr 08 10:40:17 CST 2019
+资源文件数据：<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+</beans>
+------------------------------------读取jar文件----------------------
+资源文件是否存在：true
+资源文件是否是文件：false
+资源文件是否可读：true
+资源文件名称：app.xml
+资源文件描述：URL [jar:file:///F:\spring-code-study\chapter3\target\chapter3-1.0-SNAPSHOT.jar!/app.xml]
+资源文件URL：jar:file:///F:\spring-code-study\chapter3\target\chapter3-1.0-SNAPSHOT.jar!/app.xml
+资源文件长度：307
+资源文件最后修改时间：Wed Apr 10 09:05:03 CST 2019
+资源文件数据：<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+</beans>
+------------------------------------读取网络文件-----------------
+资源文件是否存在：true
+资源文件是否是文件：false
+资源文件是否可读：true
+资源文件名称：app.xml
+资源文件描述：URL [https://raw.githubusercontent.com/qzzsunly/spring-code-study/master/chapter3/src/main/resources/app.xml]
+资源文件URL：https://raw.githubusercontent.com/qzzsunly/spring-code-study/master/chapter3/src/main/resources/app.xml
+资源文件长度：302
+资源文件最后修改时间：Thu Jan 01 08:00:00 CST 1970
+资源文件数据：<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+</beans>
+------------------------------------读取classpath文件-----------------
+资源文件是否存在：true
+资源文件是否是文件：true
+资源文件是否可读：true
+资源文件名称：app.xml
+资源文件描述：class path resource [app.xml]
+资源文件URL：file:/F:/spring-code-study/chapter3/target/classes/app.xml
+资源文件长度：307
+资源文件最后修改时间：Mon Apr 08 10:40:17 CST 2019
+资源文件数据：<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+</beans>
+```
+
+从上面的例子中可以看到使用`ResourceLoader`和`Resource`接口，我们可以很方便的读取文件内容。
+
+##### PathMatchingResourcePatternResolver
+
+此实现支持ant风格的通配符形式路径。在有多个文件的情况下，我们可以利用这个类来加载多个配置文件。
+
+###### 在没有通配符的情况
+
+如果指定的路径没有`classpath*:`前缀，将通过底层ResourceLoader的getResource()返回单个的资源。比如“file:C:/context”。“classpath:/context”这样的伪url，以及简单的无前缀路径，如“/WEB-INF/context.xml”，后者将基于底层ResourceLoader的方式解析(例如，用于WebApplicationContext的ServletContextResource)。
+
+###### Ant 风格的路径
+
+当路径包含一个ant样式的模式时，例如:`/WEB-INF/*-context.xml`、`com/mycompany/**/applicationContext.xml`、`file:C:/some/path/*-context.xml`、`classpath:com/mycompany/**/applicationContext.xml`, 解析器遵循一个更复杂但是已定义好的算法来尝试解析通配符。它为最后一个非通配符部分的路径生成一个资源，并获取一个URL。如果该URL不是`jar:` URL或特定于容器的变体(例如WebLogic中的`zip:`，WebSphere中的`wsjar`等等)，那么将从它获取`java.io.File`，并通过遍历文件系统来解析通配符。对于jar URL，解析器要么从中获取java.net.JarURLConnection，要么手动解析jar URL，然后遍历jar文件的内容来以解析通配符
+
+###### 可移植性影响
+
+如果指定的路径已经是文件URL(由于基本ResourceLoader是基于文件系统的，所以可以显式或隐式地使用)，那么通配符就可以方便移植。如果指定的路径是类路径，那么解析器必须通过调用`Classloader.getResource()`获得最后一个非通配符路径部分的URL。由于这只是路径的一个节点(而不是末尾的文件)，所以它实际上是未定义的(在ClassLoader 的文档中有提及)。实际上，它通常是一个表示目录的`java.io.File`，其中类路径资源解析为文件系统位置，或者是某种jar URL，其中类路径解析为jar所在位置。尽管如此，这个操作仍然存在可移植性问题。为了从最后一个非通配符部分获取jar URL，解析器必须能够从中获得`java.net.JarURLConnection`，或者手动解析jar URL，以便能够遍历jar的内容并解析通配符。这将在大多数环境中工作，但在其他环境中可能会失败，强烈建议在依赖jar之前，在你的特定环境中彻底测试jar包资源的通配符解析。
+
+###### classpath*:前缀
+
+支持通过`classpath*:`前缀检索同名的多个类路径资源。例如,`classpath*:META-INF/beans.xml`将找到classpath下所有的`beans.xml`文件，无论是在`classes`目录中还是在JAR文件中。这对于自动检测每个jar文件中的相同位置的相同名称的配置文件特别有用。在内部是通过`ClassLoader.getResources()`方法实现的，并且是完全可移植的。`classpath*:`前缀还可以结合`PathMatcher` 模式，例如`classpath*:META-INF/*-beans.xml`。在本例中，解析策略相当简单:在最后一个非通配符路径部分上调用`ClassLoader.getResources()`来获取类加载器层次结构中所有匹配的资源，然后在每个资源之外使用上面描述的相同路径匹配器解析策略来处理通配符子路径。
+
+###### 另注
+
+警告: 注意，`classpath*:`与ant样式的模式结合使用时，根目录在文件系统中必须存在。这意味着像`classpath*:*.xml`这样的模式不会从jar文件的根中检索文件，而是只从扩展目录的根中检索。这源于JDK的`ClassLoader.getResources()`方法中的一个限制，该方法传入空字符串只返回文件系统位置(指示潜在的要搜索的根目录)。这个`ResourcePatternResolver`实现试图通过URLClassLoader自省和`java.class.path`清单来减轻jar根目录查找的限制;但是不保证可移植性。
+**警告: 当`classpath:`搭配Ant风格时，如果在多个类路径位置都能搜索到根包，则不能保证资源能够找到匹配的资源。这是因为如
+`com/mycompany/package1/service-context.xml`这样的资源可能只在一个位置，但当尝试解析这样路径时:`com/mycompany/**/service-context.xml`,解析器在处理`getResource(com/mycompany”)`返回的(第一个)URL，如果此存在于多个类加载器时，则实际的想要的资源可能不在返回的类加载器中。因此，在这种情况下，最好使用具有相同ant样式模式的`classpath*:`，它将搜索包含根包的所有类路径。**
