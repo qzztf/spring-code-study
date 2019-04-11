@@ -356,3 +356,157 @@ System.out.println("资源文件数据：" + new String(resource.getInputStream(
 警告: 注意，`classpath*:`与ant样式的模式结合使用时，根目录在文件系统中必须存在。这意味着像`classpath*:*.xml`这样的模式不会从jar文件的根中检索文件，而是只从扩展目录的根中检索。这源于JDK的`ClassLoader.getResources()`方法中的一个限制，该方法传入空字符串只返回文件系统位置(指示潜在的要搜索的根目录)。这个`ResourcePatternResolver`实现试图通过URLClassLoader自省和`java.class.path`清单来减轻jar根目录查找的限制;但是不保证可移植性。
 **警告: 当`classpath:`搭配Ant风格时，如果在多个类路径位置都能搜索到根包，则不能保证资源能够找到匹配的资源。这是因为如
 `com/mycompany/package1/service-context.xml`这样的资源可能只在一个位置，但当尝试解析这样路径时:`com/mycompany/**/service-context.xml`,解析器在处理`getResource(com/mycompany”)`返回的(第一个)URL，如果此存在于多个类加载器时，则实际的想要的资源可能不在返回的类加载器中。因此，在这种情况下，最好使用具有相同ant样式模式的`classpath*:`，它将搜索包含根包的所有类路径。**
+
+###### 使用示例
+
+```java
+
+PathMatchingResourcePatternResolver resourceLoader = new PathMatchingResourcePatternResolver();
+//读取file文件
+System.out.println("------------------------------------读取多个文件------------------");
+Resource[] resources = resourceLoader.getResources("classpath:app*.xml");
+for (Resource resource : resources) {
+
+    System.out.println("资源文件是否存在：" + resource.exists());
+    System.out.println("资源文件是否是文件：" + resource.isFile());
+    System.out.println("资源文件是否可读：" + resource.isReadable());
+//        System.out.println("资源文件是否可写：" + ((FileSystemResource)resource).isWritable());
+    System.out.println("资源文件名称：" + resource.getFilename());
+    System.out.println("资源文件：" + resource.getFile());
+    System.out.println("资源文件描述：" + resource.getDescription());
+    System.out.println("资源文件URL：" + resource.getURL());
+    System.out.println("资源文件URI：" + resource.getURI());
+    System.out.println("资源文件长度：" + resource.contentLength());
+    System.out.println("资源文件最后修改时间：" + new Date(resource.lastModified()));
+    System.out.println("资源文件数据：" + new String(resource.getInputStream().readAllBytes()));
+
+}
+    
+```
+
+结果：
+
+```text
+------------------------------------读取多个文件------------------
+资源文件是否存在：true
+资源文件是否是文件：true
+资源文件是否可读：true
+资源文件名称：app0.xml
+资源文件：F:\spring-code-study\chapter3\target\classes\app0.xml
+资源文件描述：file [F:\spring-code-study\chapter3\target\classes\app0.xml]
+资源文件URL：file:/F:/spring-code-study/chapter3/target/classes/app0.xml
+资源文件URI：file:/F:/spring-code-study/chapter3/target/classes/app0.xml
+资源文件长度：331
+资源文件最后修改时间：Wed Apr 10 20:57:17 CST 2019
+资源文件数据：<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <!--配置文件0-->
+</beans>
+资源文件是否存在：true
+资源文件是否是文件：true
+资源文件是否可读：true
+资源文件名称：app1.xml
+资源文件：F:\spring-code-study\chapter3\target\classes\app1.xml
+资源文件描述：file [F:\spring-code-study\chapter3\target\classes\app1.xml]
+资源文件URL：file:/F:/spring-code-study/chapter3/target/classes/app1.xml
+资源文件URI：file:/F:/spring-code-study/chapter3/target/classes/app1.xml
+资源文件长度：331
+资源文件最后修改时间：Wed Apr 10 10:46:52 CST 2019
+资源文件数据：<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <!--配置文件1-->
+</beans>
+资源文件是否存在：true
+资源文件是否是文件：true
+资源文件是否可读：true
+资源文件名称：app2.xml
+资源文件：F:\spring-code-study\chapter3\target\classes\app2.xml
+资源文件描述：file [F:\spring-code-study\chapter3\target\classes\app2.xml]
+资源文件URL：file:/F:/spring-code-study/chapter3/target/classes/app2.xml
+资源文件URI：file:/F:/spring-code-study/chapter3/target/classes/app2.xml
+资源文件长度：331
+资源文件最后修改时间：Wed Apr 10 10:46:50 CST 2019
+资源文件数据：<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <!--配置文件2-->
+</beans>
+```
+
+## BeanDefinitionReader 加载bean定义资源
+
+通过`ResourceLoader` 定位资源文件之后，那么就该`BeanDefinitionReader`开始着手加载bean定义了。
+
+定义的方法：
+
+- int loadBeanDefinitions(Resource resource)：从单个资源中加载，返回发现的bean 定义数量
+- int loadBeanDefinitions(Resource... resources)：从多个资源中加载
+- int loadBeanDefinitions(String location)：从单个资源位置加载
+- int loadBeanDefinitions(String... locations)：从多个资源位置加载
+
+从方法定义中可以看出，`BeanDefinitionReader`提供了多个从各种资源中加载bean定义的功能。
+
+### 实现类
+
+Spring 提供了三个实现类，用于从不同格式的资源文件中加载bean定义。
+
+#### PropertiesBeanDefinitionReader
+
+该类用于从properties文件中加载bean定义。
+
+#### GroovyBeanDefinitionReader
+
+基于Groovy的 reader。
+这个bean定义reader还可以读取XML bean定义文件，允许与Groovy bean定义文件无缝搭配。
+
+#### XmlBeanDefinitionReader
+
+读取xml bean定义文件，将资源解析成xml w3c document, 内部委托给`BeanDefinitionDocumentReader`接口(具体实现类是`DefaultBeanDefinitionDocumentReader`)去加载。
+
+```java
+protected void doRegisterBeanDefinitions(Element root) {
+		// Any nested <beans> elements will cause recursion in this method. In
+		// order to propagate and preserve <beans> default-* attributes correctly,
+		// keep track of the current (parent) delegate, which may be null. Create
+		// the new (child) delegate with a reference to the parent for fallback purposes,
+		// then ultimately reset this.delegate back to its original (parent) reference.
+		// this behavior emulates a stack of delegates without actually necessitating one.
+		//任何内部的 <beans> 标签，将会递归调用这个方法， 为了正确地传播和保存<beans>默认的属性值，需要跟踪当前(父)委托，它有可能为空。
+		//因为子beans 需要继承父beans的一些默认属性，比如说default-lazy-init="default", 
+		//创建新的(子)委托，并使用父委托的引用进行回退，然后最终将this.delegate重置为其原始(父)引用。这种行为模拟了一堆委托，实际上并不需要委托。
+		BeanDefinitionParserDelegate parent = this.delegate;
+		this.delegate = createDelegate(getReaderContext(), root, parent);
+
+        //判断当前标签是不是在默认命名空间中，默认命名空间代表<benas>标签所在的命名空间
+		if (this.delegate.isDefaultNamespace(root)) {
+		    //当前<beans> 标签指定了profile属性，则跟当前环境中激活的profile进行比较，如果是未激活，则跳过当前<beans> 标签
+			String profileSpec = root.getAttribute(PROFILE_ATTRIBUTE);
+			if (StringUtils.hasText(profileSpec)) {
+				String[] specifiedProfiles = StringUtils.tokenizeToStringArray(
+						profileSpec, BeanDefinitionParserDelegate.MULTI_VALUE_ATTRIBUTE_DELIMITERS);
+				// We cannot use Profiles.of(...) since profile expressions are not supported
+				// in XML config. See SPR-12458 for details.
+				if (!getReaderContext().getEnvironment().acceptsProfiles(specifiedProfiles)) {
+					if (logger.isDebugEnabled()) {
+						logger.debug("Skipped XML bean definition file due to specified profiles [" + profileSpec +
+								"] not matching: " + getReaderContext().getResource());
+					}
+					return;
+				}
+			}
+		}
+
+		preProcessXml(root);
+		
+		//解析当前<beans>标签
+		parseBeanDefinitions(root, this.delegate);
+		postProcessXml(root);
+
+		this.delegate = parent;
+	}
+```
