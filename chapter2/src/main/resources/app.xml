@@ -4,5 +4,10 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean class="cn.sexycode.spring.study.chapter2.DemoBeanFactoryPostProcessor"/>
-    <bean class="cn.sexycode.spring.study.chapter2.DemoBeanPostProcessor"/>
+    <bean class="cn.sexycode.spring.study.chapter2.DemoBeanPostProcessor">
+        <meta key="" value=""/>
+        <lookup-method name="f"/>
+        <replaced-method name="postProcessAfterInitialization" replacer=""/>
+
+    </bean>
 </beans>

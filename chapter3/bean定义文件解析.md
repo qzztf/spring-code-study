@@ -476,10 +476,11 @@ protected void doRegisterBeanDefinitions(Element root) {
 		// the new (child) delegate with a reference to the parent for fallback purposes,
 		// then ultimately reset this.delegate back to its original (parent) reference.
 		// this behavior emulates a stack of delegates without actually necessitating one.
-		//任何内部的 <beans> 标签，将会递归调用这个方法， 为了正确地传播和保存<beans>默认的属性值，需要跟踪当前(父)委托，它有可能为空。
+		//任何内部的 <beans> 标签，将会递归调用这个方法， 为了正确地传播和保存<beans> 的`default-`属性值，需要跟踪当前(父)委托，它有可能为空。
 		//因为子beans 需要继承父beans的一些默认属性，比如说default-lazy-init="default", 
 		//创建新的(子)委托，并使用父委托的引用进行回退，然后最终将this.delegate重置为其原始(父)引用。这种行为模拟了一堆委托，实际上并不需要委托。
 		BeanDefinitionParserDelegate parent = this.delegate;
+		// 为当前根节点创建新的委托解析器
 		this.delegate = createDelegate(getReaderContext(), root, parent);
 
         //判断当前标签是不是在默认命名空间中，默认命名空间代表<benas>标签所在的命名空间
@@ -508,5 +509,144 @@ protected void doRegisterBeanDefinitions(Element root) {
 		postProcessXml(root);
 
 		this.delegate = parent;
+	}
+```
+
+BeanDefinitionParserDelegate 对象是用来具体解析每个元素的，为什么需要创建一个新的。可以
+
+再看看parseBeanDefinitions方法
+```java
+//如果当前元素属于默认命名空间，这里其实就是指<beans>标签
+if (delegate.isDefaultNamespace(root)) {
+    NodeList nl = root.getChildNodes();
+    //遍历子节点
+    for (int i = 0; i < nl.getLength(); i++) {
+        Node node = nl.item(i);
+        if (node instanceof Element) {
+            Element ele = (Element) node;
+            if (delegate.isDefaultNamespace(ele)) {
+                //如果该标签属性默认命名空间，Uri为空，或者是 http://www.springframework.org/schema/beans
+                // import标签
+                if (delegate.nodeNameEquals(ele, IMPORT_ELEMENT)) {
+                    // 先处理路径中的点位符，如：${user.dir}
+                    // 判断引入的资源是否绝对路径(classpath:, classpath*:, url资源)，再调用reader的loadBeanDefinitions 方法
+                    // 相对路径则使用 当前的资源创建相对路径资源（getReaderContext().getResource().createRelative(location)）
+                    //再调用reader的loadBeanDefinitions 方法
+                    importBeanDefinitionResource(ele);
+                }
+                //alias 标签
+                else if (delegate.nodeNameEquals(ele, ALIAS_ELEMENT)) {
+                    //调用org.springframework.core.AliasRegistry.registerAlias 方法注册别名
+                    processAliasRegistration(ele);
+                }
+                // bean 标签
+                else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) {
+                    processBeanDefinition(ele, delegate);
+                }
+                // 内部 beans 标签， 则递归调用 doRegisterBeanDefinitions()方法，
+                else if (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) {
+                    // recurse
+                    doRegisterBeanDefinitions(ele);
+                }
+            }
+            else {
+                delegate.parseCustomElement(ele);
+            }
+        }
+    }
+}
+else {
+    delegate.parseCustomElement(root);
+}
+```
+
+主要看一下 processBeanDefinition 方法，这个方法用来解析bean定义。
+processBeanDefinition(): 
+```java
+//调用了BeanDefinitionParserDelegate 来解析出BeanDefinitionHolder对象，这个对象中封装了 BeanDefinition 以及bean名称对象。
+//BeanDefinition 是用来描述bean 定义的对象，主要包括 class, lazy-init ，依赖对象， 初始化方法，销毁方法，作用域, 父级bean定义等信息，这些信息都解析自xml bean标签，一一对应。
+
+BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
+if (bdHolder != null) {
+    bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
+    try {
+        // Register the final decorated instance.
+        BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
+    }
+    catch (BeanDefinitionStoreException ex) {
+        getReaderContext().error("Failed to register bean definition with name '" +
+                bdHolder.getBeanName() + "'", ele, ex);
+    }
+    // Send registration event.
+    getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
+}
+```
+下面看一下BeanDefinitionParserDelegate的parseBeanDefinitionElement方法
+
+```java
+
+public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable BeanDefinition containingBean) {
+		String id = ele.getAttribute(ID_ATTRIBUTE);
+		String nameAttr = ele.getAttribute(NAME_ATTRIBUTE);
+
+		List<String> aliases = new ArrayList<>();
+		if (StringUtils.hasLength(nameAttr)) {
+		    // 解析bean name， 可以有多个，用 ,;  隔开
+			String[] nameArr = StringUtils.tokenizeToStringArray(nameAttr, MULTI_VALUE_ATTRIBUTE_DELIMITERS);
+			aliases.addAll(Arrays.asList(nameArr));
+		}
+
+
+		String beanName = id;
+		// id 为空，则用第一个name 作为id
+		if (!StringUtils.hasText(beanName) && !aliases.isEmpty()) {
+			beanName = aliases.remove(0);
+			if (logger.isTraceEnabled()) {
+				logger.trace("No XML 'id' specified - using '" + beanName +
+						"' as bean name and " + aliases + " as aliases");
+			}
+		}
+
+		if (containingBean == null) {
+		    //判断名称是否唯一
+			checkNameUniqueness(beanName, aliases, ele);
+		}
+
+        // 具体解析标签的每个元素，设置 beanDefinition对应的属性
+		AbstractBeanDefinition beanDefinition = parseBeanDefinitionElement(ele, beanName, containingBean);
+		if (beanDefinition != null) {
+			if (!StringUtils.hasText(beanName)) {
+				try {
+					if (containingBean != null) {
+						beanName = BeanDefinitionReaderUtils.generateBeanName(
+								beanDefinition, this.readerContext.getRegistry(), true);
+					}
+					else {
+						beanName = this.readerContext.generateBeanName(beanDefinition);
+						// Register an alias for the plain bean class name, if still possible,
+						// if the generator returned the class name plus a suffix.
+						// This is expected for Spring 1.2/2.0 backwards compatibility.
+						String beanClassName = beanDefinition.getBeanClassName();
+						if (beanClassName != null &&
+								beanName.startsWith(beanClassName) && beanName.length() > beanClassName.length() &&
+								!this.readerContext.getRegistry().isBeanNameInUse(beanClassName)) {
+							aliases.add(beanClassName);
+						}
+					}
+					if (logger.isTraceEnabled()) {
+						logger.trace("Neither XML 'id' nor 'name' specified - " +
+								"using generated bean name [" + beanName + "]");
+					}
+				}
+				catch (Exception ex) {
+					error(ex.getMessage(), ele);
+					return null;
+				}
+			}
+			String[] aliasesArray = StringUtils.toStringArray(aliases);
+			return new BeanDefinitionHolder(beanDefinition, beanName, aliasesArray);
+		}
+
+		return null;
 	}
 ```

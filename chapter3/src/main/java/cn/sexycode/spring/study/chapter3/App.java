@@ -17,6 +17,6 @@ public class App
         // 2. 初始化XmlBeanDefinitionReader,负责从xml文件中读取bean定义
         XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(factory);
         // 3. 加载bean 定义的入口方法
-        reader.loadBeanDefinitions("classpath:app.xml");
+        reader.loadBeanDefinitions("app0.xml");
     }
 }
