@@ -451,7 +451,7 @@ for (Resource resource : resources) {
 
 从方法定义中可以看出，`BeanDefinitionReader`提供了多个从各种资源中加载bean定义的功能。
 
-### 实现类
+### BeanDefinitionReader 实现类
 
 Spring 提供了三个实现类，用于从不同格式的资源文件中加载bean定义。
 
@@ -550,12 +550,14 @@ if (delegate.isDefaultNamespace(root)) {
                 }
             }
             else {
+                //如果是自定义标签，那么调用自定义标签解析
                 delegate.parseCustomElement(ele);
             }
         }
     }
 }
 else {
+    //如果是自定义标签，那么调用自定义标签解析
     delegate.parseCustomElement(root);
 }
 ```
@@ -564,13 +566,16 @@ else {
 processBeanDefinition(): 
 ```java
 //调用了BeanDefinitionParserDelegate 来解析出BeanDefinitionHolder对象，这个对象中封装了 BeanDefinition 以及bean名称对象。
-//BeanDefinition 是用来描述bean 定义的对象，主要包括 class, lazy-init ，依赖对象， 初始化方法，销毁方法，作用域, 父级bean定义等信息，这些信息都解析自xml bean标签，一一对应。
+//BeanDefinition 是用来描述bean 定义的对象，主要包括 class, lazy-init ，依赖对象， 初始化方法，销毁方法，作用域, 父级bean定义等信息，这些信息都解析自xml bean标签，一一对应。如果在有自定义的子标签和属性，则进一步调用自定义的 NamespaceHandler
 
 BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
 if (bdHolder != null) {
+    //处理标签中的自定义元素和自定义子标签， 调用自定义的 NamespaceHandler 来解析。
+    // 这里返回的 BeanDefinitionHolder 可以是原始的，也可以是自己经过处理的。一切看 NamespaceHandler 里如何定义的
     bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
     try {
         // Register the final decorated instance.
+        // 注册最终的 BeanDefinitionHolder
         BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
     }
     catch (BeanDefinitionStoreException ex) {
@@ -581,7 +586,8 @@ if (bdHolder != null) {
     getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
 }
 ```
-下面看一下BeanDefinitionParserDelegate的parseBeanDefinitionElement方法
+
+下面看一下BeanDefinitionParserDelegate的parseBeanDefinitionElement方法，主要包括BeanDefinition的属性的设置，以及bean下的元素标签解析，bean 定义名称等
 
 ```java
 
@@ -612,7 +618,7 @@ public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable Be
 			checkNameUniqueness(beanName, aliases, ele);
 		}
 
-        // 具体解析标签的每个元素，设置 beanDefinition对应的属性
+        // 具体解析标签的每个元素，包括init-method, 构造参数等，设置 beanDefinition对应的属性
 		AbstractBeanDefinition beanDefinition = parseBeanDefinitionElement(ele, beanName, containingBean);
 		if (beanDefinition != null) {
 			if (!StringUtils.hasText(beanName)) {
@@ -649,4 +655,99 @@ public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable Be
 
 		return null;
 	}
+```
+
+### NamespaceHandler 解析自定义标签
+除了默认命名空间`http://www.springframework.org/schema/beans`之外，其他的都是自定义命名空间，需要用到`NamespaceHandler`来解析自定义标签。`NamespaceHandlerResolver`会找到命名空间所对应的`NamespaceHandler`。`NamespaceHandlerResolver`接口的默认实现类`DefaultNamespaceHandlerResolver` 会加载`META-INF/spring.handlers`文件，并根据命名空间地址来实例化`NamespaceHandler`实现类。
+
+#### 常用的 NamespaceHandler
+
+- SimplePropertyNamespaceHandler：简单的NamespaceHandler实现，它将特定属性直接映射到bean属性。需要注意的重要一点是，NamespaceHandler无法预知所有可能的属性名。下面是使用NamespaceHandler的一个例子:
+                                 <bean id = "rob" class = "..TestBean" p:name="Rob Harrop" p:spouse-ref="sally"/>
+                                 这里的`p:name`直接对应于类“TestBean”上的`name`属性。`p:spouse-ref`属性对应于`spouse`属性，将value 所对应的bean注入到该属性中。
+- SimpleConstructorNamespaceHandler：设置构造函数参数。如：
+                                    <bean id = "author" class = "..TestBean " c:name = "Enescu" c:work-ref = "compositions" /> 。这里，“c:name”直接对应于类“TestBean”构造函数中声明的“name”参数。“c:work-ref”属性对应于“work”参数，它不作为具体值，而是包含作为参数的bean的名称。注意:这个实现支持命名参数, 下标——不支持类型。此外，容器使用这些名称作为提示，默认情况下，容器会进行类型自省 。
+- NamespaceHandlerSupport：
+
+## BeanDefinitionRegistry 注册bean 定义
+
+BeanDefinitionReaderUtils.registerBeanDefinition()方法内部调用了org.springframework.beans.factory.support.BeanDefinitionRegistry.registerBeanDefinition 方法， 具体的实现就是beanFactory实现类（`org.springframework.beans.factory.support.DefaultListableBeanFactory.registerBeanDefinition`）了。
+
+DefaultListableBeanFactory.registerBeanDefinition():
+
+```java
+public void registerBeanDefinition(String beanName, BeanDefinition beanDefinition)
+			throws BeanDefinitionStoreException {
+
+    Assert.hasText(beanName, "Bean name must not be empty");
+    Assert.notNull(beanDefinition, "BeanDefinition must not be null");
+
+    if (beanDefinition instanceof AbstractBeanDefinition) {
+        try {
+            ((AbstractBeanDefinition) beanDefinition).validate();
+        }
+        catch (BeanDefinitionValidationException ex) {
+            throw new BeanDefinitionStoreException(beanDefinition.getResourceDescription(), beanName,
+                    "Validation of bean definition failed", ex);
+        }
+    }
+
+    BeanDefinition existingDefinition = this.beanDefinitionMap.get(beanName);
+    if (existingDefinition != null) {
+        if (!isAllowBeanDefinitionOverriding()) {
+            throw new BeanDefinitionOverrideException(beanName, beanDefinition, existingDefinition);
+        }
+        else if (existingDefinition.getRole() < beanDefinition.getRole()) {
+            // e.g. was ROLE_APPLICATION, now overriding with ROLE_SUPPORT or ROLE_INFRASTRUCTURE
+            if (logger.isInfoEnabled()) {
+                logger.info("Overriding user-defined bean definition for bean '" + beanName +
+                        "' with a framework-generated bean definition: replacing [" +
+                        existingDefinition + "] with [" + beanDefinition + "]");
+            }
+        }
+        else if (!beanDefinition.equals(existingDefinition)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Overriding bean definition for bean '" + beanName +
+                        "' with a different definition: replacing [" + existingDefinition +
+                        "] with [" + beanDefinition + "]");
+            }
+        }
+        else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Overriding bean definition for bean '" + beanName +
+                        "' with an equivalent definition: replacing [" + existingDefinition +
+                        "] with [" + beanDefinition + "]");
+            }
+        }
+        this.beanDefinitionMap.put(beanName, beanDefinition);
+    }
+    else {
+        if (hasBeanCreationStarted()) {
+            // Cannot modify startup-time collection elements anymore (for stable iteration)
+            synchronized (this.beanDefinitionMap) {
+                this.beanDefinitionMap.put(beanName, beanDefinition);
+                List<String> updatedDefinitions = new ArrayList<>(this.beanDefinitionNames.size() + 1);
+                updatedDefinitions.addAll(this.beanDefinitionNames);
+                updatedDefinitions.add(beanName);
+                this.beanDefinitionNames = updatedDefinitions;
+                if (this.manualSingletonNames.contains(beanName)) {
+                    Set<String> updatedSingletons = new LinkedHashSet<>(this.manualSingletonNames);
+                    updatedSingletons.remove(beanName);
+                    this.manualSingletonNames = updatedSingletons;
+                }
+            }
+        }
+        else {
+            // Still in startup registration phase
+            this.beanDefinitionMap.put(beanName, beanDefinition);
+            this.beanDefinitionNames.add(beanName);
+            this.manualSingletonNames.remove(beanName);
+        }
+        this.frozenBeanDefinitionNames = null;
+    }
+
+    if (existingDefinition != null || containsSingleton(beanName)) {
+        resetBeanDefinition(beanName);
+    }
+}
 ```
