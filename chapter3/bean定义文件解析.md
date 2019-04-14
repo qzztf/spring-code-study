@@ -662,12 +662,85 @@ public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable Be
 
 #### 常用的 NamespaceHandler
 
-- SimplePropertyNamespaceHandler：简单的NamespaceHandler实现，它将特定属性直接映射到bean属性。需要注意的重要一点是，NamespaceHandler无法预知所有可能的属性名。下面是使用NamespaceHandler的一个例子:
-                                 <bean id = "rob" class = "..TestBean" p:name="Rob Harrop" p:spouse-ref="sally"/>
-                                 这里的`p:name`直接对应于类“TestBean”上的`name`属性。`p:spouse-ref`属性对应于`spouse`属性，将value 所对应的bean注入到该属性中。
-- SimpleConstructorNamespaceHandler：设置构造函数参数。如：
-                                    <bean id = "author" class = "..TestBean " c:name = "Enescu" c:work-ref = "compositions" /> 。这里，“c:name”直接对应于类“TestBean”构造函数中声明的“name”参数。“c:work-ref”属性对应于“work”参数，它不作为具体值，而是包含作为参数的bean的名称。注意:这个实现支持命名参数, 下标——不支持类型。此外，容器使用这些名称作为提示，默认情况下，容器会进行类型自省 。
-- NamespaceHandlerSupport：
+- SimplePropertyNamespaceHandler：简单的NamespaceHandler实现，它将特定属性直接映射到bean属性。需要注意的重要一点是，NamespaceHandler无法预知所有可能的属性名。下面是使用NamespaceHandler的一个例子: <bean id = "rob" class = "..TestBean" p:name="Rob Harrop" p:spouse-ref="sally"/>, 这里的`p:name`直接对应于类“TestBean”上的`name`属性。`p:spouse-ref`属性对应于`spouse`属性，将value 所对应的bean注入到该属性中。
+- SimpleConstructorNamespaceHandler：设置构造函数参数。如： <bean id = "author" class = "..TestBean " c:name = "Enescu" c:work-ref = "compositions" /> 。这里，“c:name”直接对应于类“TestBean”构造函数中声明的“name”参数。“c:work-ref”属性对应于“work”参数，它不作为具体值，而是包含作为参数的bean的名称。注意:这个实现支持命名参数, 下标——不支持类型。此外，容器使用这些名称作为提示，默认情况下，容器会进行类型自省 。
+- NamespaceHandlerSupport：实现自定义NamespaceHandler的支持类。各个节点的解析和装饰分别通过`BeanDefinitionParser`和`BeanDefinitionDecorator`策略接口完成。提供`registerBeanDefinitionParser`和`registerBeanDefinitionDecorator`方法，用于注册`BeanDefinitionParser`或`BeanDefinitionDecorator`来处理特定元素。
+- AopNamespaceHandler: 用于 `aop` 命名空间的NamespaceHandler。为<aop:config>标签提供一个BeanDefinitionParser。`config`标记可以包含嵌套的`pointcut`、`advisor`和`aspect`标签。`pointcut`标签允许使用简单的语法创建命名的`AspectJExpressionPointcut` bean: <aop:pointcut id="getNameCalls" expression="execution(* *..ITestBean.getName(..))"/>. 使用`advisor`标签，你可以配置`org.springframework.aop.Advisor`并将其自动应用于你的`org.springframework.beans.factory.BeanFactory`中的所有相关bean。`advisor`标签支持内联和引用`org.springframework.aop.Pointcut`: <aop:advisor id="getAgeAdvisor"
+       pointcut="execution(* *..ITestBean.getAge(..))"
+       advice-ref="getAgeCounter"/>
+  
+   <aop:advisor id="getNameAdvisor"
+       pointcut-ref="getNameCalls"
+       advice-ref="getNameCounter"/>
+   
+   标签对应的解析器：config -> ConfigBeanDefinitionParser, aspectj-autoproxy -> AspectJAutoProxyBeanDefinitionParser, scoped-proxy -> ScopedProxyBeanDefinitionDecorator
+- ContextNamespaceHandler: 解析 `context` 命名空间。 标签对应的解析器：property-placeholder -> PropertyPlaceholderBeanDefinitionParser, property-override -> PropertyOverrideBeanDefinitionParser, annotation-config -> AnnotationConfigBeanDefinitionParser, component-scan -> ComponentScanBeanDefinitionParser, load-time-weaver -> LoadTimeWeaverBeanDefinitionParser, spring-configured -> SpringConfiguredBeanDefinitionParser, mbean-export -> MBeanExportBeanDefinitionParser, mbean-server -> MBeanServerBeanDefinitionParser   
+- LangNamespaceHandler: 解析 `lang` 命名空间。NamespaceHandler 支持由动态语言(如Groovy、JRuby和BeanShell)支持的对象织入。下面是一个示例(来自参考文档)，它详细描述了Groovy支持的bean的织入: 
+  <lang:groovy id="messenger"
+       refresh-check-delay="5000"
+       script-source="classpath:Messenger.groovy">
+   <lang:property name="message" value="I Can Do The Frug"/>
+  </lang:groovy>
+  标签对应的解析器：groovy, bsh, std -> ScriptBeanDefinitionParser, defaults -> ScriptingDefaultsParser
+- UtilNamespaceHandler: 解析`util` 命名空间。标签对应的解析器：constant -> ConstantBeanDefinitionParser, property-path -> PropertyPathBeanDefinitionParser， list -> ListBeanDefinitionParser , set -> SetBeanDefinitionParser, map -> MapBeanDefinitionParser , properties -> PropertiesBeanDefinitionParser.
+- TaskNamespaceHandler: 解析`task` 命名空间. 标签对应的解析器：annotation-driven -> AnnotationDrivenBeanDefinitionParser, executor -> ExecutorBeanDefinitionParser , scheduled-tasks -> ScheduledTasksBeanDefinitionParser, scheduler -> SchedulerBeanDefinitionParser.
+- CacheNamespaceHandler: 允许使用XML或注释配置声明式缓存管理的NamespaceHandler。这个名称空间处理程序是Spring缓存管理工具中的核心功能。标签对应的解析器： annotation-driven -> AnnotationDrivenCacheBeanDefinitionParser，advice -> CacheAdviceParser. 
+- MvcNamespaceHandler: 用于Spring MVC配置命名空间的NamespaceHandler . 标签对应的解析器：annotation-driven -> AnnotationDrivenBeanDefinitionParser 
+- JeeNamespaceHandler: 解析 `jee` 命名空间。标签对应的解析器：jndi-lookup -> JndiLookupBeanDefinitionParser, local-slsb -> LocalStatelessSessionBeanDefinitionParser, remote-slsb -> RemoteStatelessSessionBeanDefinitionParser.
+
+### BeanDefinitionParser
+
+DefaultBeanDefinitionDocumentReader用于处理自定义顶级(直接位于<beans/>之下)标签的接口。实现类可以根据需要自由地将自定义标签中的元数据转换成任意多的bean定义。
+解析器从关联的NamespaceHandler中为自定义标签所在的命名空间定位一个BeanDefinitionParser。通过`NamespaceHandlerSupport`的`registerBeanDefinitionParser`方法注册
+
+#### 提供的方法
+
+BeanDefinition parse(Element element, ParserContext parserContext)：解析指定的元素并将结果bean定义注册到所提供的ParserContext中嵌入的BeanDefinitionRegistry。
+如果要以嵌套方式使用(例如作为<property/>标记中的内部标记)，实现类必须返回从解析中得到的主要bean定义。如果实现不以嵌套方式使用，则可能返回null。
+
+#### 常用实现类
+常用的就是上面所列的每个 `NamespaceHandler`中注册的解析器。
+
+- ConfigBeanDefinitionParser：解析 <aop:config> 标签
+- AspectJAutoProxyBeanDefinitionParser: 解析 <aop:aspectj-autoproxy> 标签
+- ScopedProxyBeanDefinitionDecorator：解析 <aop:scoped-proxy> 标签
+- PropertyPlaceholderBeanDefinitionParser：解析 <context:property-placeholder> 标签
+- PropertyOverrideBeanDefinitionParser: 解析 <context:property-override> 标签
+- AnnotationConfigBeanDefinitionParser：解析 <context:annotation-config> 标签
+- ComponentScanBeanDefinitionParser: 解析 <context:component-scan> 标签
+- LoadTimeWeaverBeanDefinitionParser： 解析 <context:load-time-weaver> 标签
+- SpringConfiguredBeanDefinitionParser：解析 <context:spring-configured> 标签
+- MBeanExportBeanDefinitionParser：解析 <context:mbean-export> 标签
+- MBeanServerBeanDefinitionParser：解析 <context:mbean-server> 标签
+- ScriptBeanDefinitionParser：解析 <lang:groovy>,<lang:bsh>,<lang:std>。 实例化时需要传入一个脚本工厂类名。分别是 `org.springframework.scripting.groovy.GroovyScriptFactory`, `org.springframework.scripting.bsh.BshScriptFactory`, `org.springframework.scripting.support.StandardScriptFactory` 
+- ScriptingDefaultsParser: 解析 <lang:defaults> 标签
+- ConstantBeanDefinitionParser：解析 <util:constant> 标签
+- PropertyPathBeanDefinitionParser：解析 <util:property-path> 标签
+- ListBeanDefinitionParser：解析 <util:list> 标签
+- SetBeanDefinitionParser：解析 <util:set> 标签
+- MapBeanDefinitionParser：解析 <util:map> 标签
+- PropertiesBeanDefinitionParser：解析 <util:properties> 标签
+- AnnotationDrivenBeanDefinitionParser：解析 <mvc:annotation-driven>，<task:annotation-driven> 标签
+- DefaultServletHandlerBeanDefinitionParser：解析 <mvc:default-servlet-handler> 标签
+- InterceptorsBeanDefinitionParser：解析 <mvc:interceptors> 标签
+- ResourcesBeanDefinitionParser：解析 <mvc:resources> 标签
+- ViewControllerBeanDefinitionParser：解析 <mvc:view-controller>, <mvc:redirect-view-controller>, <mvc:status-controller> 标签
+- ViewResolversBeanDefinitionParser：解析 <mvc:view-resolvers> 标签
+- TilesConfigurerBeanDefinitionParser：解析 <mvc:tiles-configurer> 标签
+- FreeMarkerConfigurerBeanDefinitionParser：解析 <mvc:freemarker-configurer> 标签
+- GroovyMarkupConfigurerBeanDefinitionParser：解析 <mvc:groovy-configurer> 标签
+- ScriptTemplateConfigurerBeanDefinitionParser：解析 <mvc:script-template-configurer> 标签
+- CorsBeanDefinitionParser：解析 <mvc:cors> 标签
+- ExecutorBeanDefinitionParser: 解析 <task:executor> 标签
+- ScheduledTasksBeanDefinitionParser: 解析 <task:scheduled-tasks> 标签
+- SchedulerBeanDefinitionParser: 解析 <task:scheduler> 标签
+- AnnotationDrivenCacheBeanDefinitionParser: 解析 <cache:annotation-driven> 标签
+- CacheAdviceParser: 解析 <cache:advice> 标签
+- JndiLookupBeanDefinitionParser: 解析 <jee:jndi-lookup> 标签
+- LocalStatelessSessionBeanDefinitionParser: 解析 <jee:local-slsb> 标签
+- RemoteStatelessSessionBeanDefinitionParser: 解析 <jee:remote-slsb> 标签
+
+### BeanDefinitionDecorator
 
 ## BeanDefinitionRegistry 注册bean 定义
 
