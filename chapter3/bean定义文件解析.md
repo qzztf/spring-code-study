@@ -566,7 +566,7 @@ else {
 processBeanDefinition(): 
 ```java
 //调用了BeanDefinitionParserDelegate 来解析出BeanDefinitionHolder对象，这个对象中封装了 BeanDefinition 以及bean名称对象。
-//BeanDefinition 是用来描述bean 定义的对象，主要包括 class, lazy-init ，依赖对象， 初始化方法，销毁方法，作用域, 父级bean定义等信息，这些信息都解析自xml bean标签，一一对应。如果在有自定义的子标签和属性，则进一步调用自定义的 NamespaceHandler
+//BeanDefinition 是用来描述bean 定义的对象，主要包括 class, lazy-init ，依赖对象， 初始化方法，销毁方法，作用域, 父级bean定义等信息，这些信息都解析自xml bean标签。如果在有自定义的子标签和属性，则进一步调用自定义的 NamespaceHandler
 
 BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
 if (bdHolder != null) {
@@ -742,6 +742,14 @@ BeanDefinition parse(Element element, ParserContext parserContext)：解析指�
 
 ### BeanDefinitionDecorator
 
+`DefaultBeanDefinitionDocumentReader`使用的接口来处理自定义的嵌套标签(直接位于<bean>)标签下)。还可以装饰<bean>标签的自定义属性。实现类可以自由地将自定义标签中的元数据转换为所需的任意多个bean定义，并转换所包含的bean定义标签，甚至可能返回一个完全不同的`org.springframework.bean .factory.config.BeanDefinition`替换原来的。
+`BeanDefinitionDecorator` 应该意识到它们可能是解析链的一部分。特别是，应该知道，以前的BeanDefinitionDecorator可能已经用`ProxyFactoryBean`定义替换了原来的BeanDefinition，该定义允许添加自定义拦截器。希望向封闭bean添加拦截器的 `BeanDefinitionDecorator`应该扩展`AbstractInterceptorDrivenBeanDefinitionDecorator`，它处理解析链，确保只创建一个代理，并且它包含链中的所有拦截器。 解析器从`NamespaceHandler`中为自定义标签所在的命名空间定位一个`BeanDefinitionDecorator`
+
+#### 常用实现类
+
+- ScopedProxyBeanDefinitionDecorator：负责解析<aop:scope-proxy/>标签
+- AbstractInterceptorDrivenBeanDefinitionDecorator：希望向生成的bean添加拦截器的`BeanDefinitionDecorator`的基本实现。这个基类控制`ProxyFactoryBean` bean 定义的创建，并将原始定义包装为`ProxyFactoryBean`目标属性的内部bean定义。正确处理链接，确保只创建一个`ProxyFactoryBean` 定义。如果前面的BeanDefinitionDecorator已经创建了`ProxyFactoryBean`，则只需将拦截器添加到现有定义中。子类只需要向它们希望添加的拦截器创建bean定义
+
 ## BeanDefinitionRegistry 注册bean 定义
 
 BeanDefinitionReaderUtils.registerBeanDefinition()方法内部调用了org.springframework.beans.factory.support.BeanDefinitionRegistry.registerBeanDefinition 方法， 具体的实现就是beanFactory实现类（`org.springframework.beans.factory.support.DefaultListableBeanFactory.registerBeanDefinition`）了。
@@ -757,6 +765,7 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
 
     if (beanDefinition instanceof AbstractBeanDefinition) {
         try {
+            //校验 BeanDefinition 的逻辑合法
             ((AbstractBeanDefinition) beanDefinition).validate();
         }
         catch (BeanDefinitionValidationException ex) {
@@ -767,10 +776,13 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
 
     BeanDefinition existingDefinition = this.beanDefinitionMap.get(beanName);
     if (existingDefinition != null) {
+        //如果存在同名 bean 定义
         if (!isAllowBeanDefinitionOverriding()) {
+            //不允许bean 定义覆盖
             throw new BeanDefinitionOverrideException(beanName, beanDefinition, existingDefinition);
         }
         else if (existingDefinition.getRole() < beanDefinition.getRole()) {
+            
             // e.g. was ROLE_APPLICATION, now overriding with ROLE_SUPPORT or ROLE_INFRASTRUCTURE
             if (logger.isInfoEnabled()) {
                 logger.info("Overriding user-defined bean definition for bean '" + beanName +
@@ -795,8 +807,10 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
         this.beanDefinitionMap.put(beanName, beanDefinition);
     }
     else {
+        //注册新的 bean 定义，如果正在创建 bean 实例
         if (hasBeanCreationStarted()) {
             // Cannot modify startup-time collection elements anymore (for stable iteration)
+            //不能再修改启动时的集合，为了稳定的遍历
             synchronized (this.beanDefinitionMap) {
                 this.beanDefinitionMap.put(beanName, beanDefinition);
                 List<String> updatedDefinitions = new ArrayList<>(this.beanDefinitionNames.size() + 1);
@@ -811,6 +825,7 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
             }
         }
         else {
+            //还在注册阶段，直接放进去就完事了
             // Still in startup registration phase
             this.beanDefinitionMap.put(beanName, beanDefinition);
             this.beanDefinitionNames.add(beanName);
@@ -820,6 +835,9 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
     }
 
     if (existingDefinition != null || containsSingleton(beanName)) {
+        // 重置给定bean的所有bean定义缓存，包括派生自该bean的bean的缓存。
+        //   在替换或删除现有bean定义之后调用，触发clearMergedBeanDefinition、destroySingleton和MergedBeanDefinitionPostProcessor。
+        //   在给定bean和所有具有给定bean作为父bean的bean定义上重置beandefinition
         resetBeanDefinition(beanName);
     }
 }
