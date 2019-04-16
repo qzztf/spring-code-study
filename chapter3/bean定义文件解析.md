@@ -658,7 +658,14 @@ public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable Be
 ```
 
 ### NamespaceHandler 解析自定义标签
-除了默认命名空间`http://www.springframework.org/schema/beans`之外，其他的都是自定义命名空间，需要用到`NamespaceHandler`来解析自定义标签。`NamespaceHandlerResolver`会找到命名空间所对应的`NamespaceHandler`。`NamespaceHandlerResolver`接口的默认实现类`DefaultNamespaceHandlerResolver` 会加载`META-INF/spring.handlers`文件，并根据命名空间地址来实例化`NamespaceHandler`实现类。
+除了默认命名空间`http://www.springframework.org/schema/beans`之外，其他的都是自定义命名空间，需要用到`NamespaceHandler`来解析自定义标签。`NamespaceHandlerResolver`会找到命名空间所对应的`NamespaceHandler`。`NamespaceHandlerResolver`接口的默认实现类`DefaultNamespaceHandlerResolver` 会加载`META-INF/spring.handlers`文件，并根据命名空间地址来实例化`NamespaceHandler`实现类。Spring beans包下的这个文件内容：
+
+```xml
+http\://www.springframework.org/schema/c=org.springframework.beans.factory.xml.SimpleConstructorNamespaceHandler
+http\://www.springframework.org/schema/p=org.springframework.beans.factory.xml.SimplePropertyNamespaceHandler
+http\://www.springframework.org/schema/util=org.springframework.beans.factory.xml.UtilNamespaceHandler
+```
+`命名空间地址=解析器实现类`这样的形式。
 
 #### 常用的 NamespaceHandler
 
