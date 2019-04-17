@@ -697,12 +697,12 @@ http\://www.springframework.org/schema/util=org.springframework.beans.factory.xm
 
 ### BeanDefinitionParser
 
-DefaultBeanDefinitionDocumentReader用于处理自定义顶级(直接位于<beans/>之下)标签的接口。实现类可以根据需要自由地将自定义标签中的元数据转换成任意多的bean定义。
-解析器从关联的NamespaceHandler中为自定义标签所在的命名空间定位一个BeanDefinitionParser。通过`NamespaceHandlerSupport`的`registerBeanDefinitionParser`方法注册
+`DefaultBeanDefinitionDocumentReader`用于处理自定义顶级标签的接口。实现类可以根据需要自由地将自定义标签中的元数据转换成任意多的bean定义。
+解析器从关联的`NamespaceHandler`中为自定义标签所在的命名空间定位一个`BeanDefinitionParser`。通过`NamespaceHandlerSupport`的`registerBeanDefinitionParser`方法注册
 
 #### 提供的方法
 
-BeanDefinition parse(Element element, ParserContext parserContext)：解析指定的元素并将结果bean定义注册到所提供的ParserContext中嵌入的BeanDefinitionRegistry。
+BeanDefinition parse(Element element, ParserContext parserContext)：解析指定的元素并将结果bean定义注册到所提供的ParserContext中嵌入的`BeanDefinitionRegistry`。
 如果要以嵌套方式使用(例如作为<property/>标记中的内部标记)，实现类必须返回从解析中得到的主要bean定义。如果实现不以嵌套方式使用，则可能返回null。
 
 #### 常用实现类
