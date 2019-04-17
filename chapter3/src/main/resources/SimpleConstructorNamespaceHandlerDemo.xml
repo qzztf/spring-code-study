@@ -4,6 +4,12 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
 
-    <bean class="cn.sexycode.spring.study.chapter3.Student" id="student" c:name="qzz" c:_0="000" c:_1="111">
+    <!--用名称和下标同时定义参数，解析的时候不会报错，但是实际化的时候会报错-->
+    <bean class="cn.sexycode.spring.study.chapter3.Student" id="student" c:name="qzz" c:_1="111">
+        <constructor-arg name="name" value="constructor-arg"/>
+        <constructor-arg name="age" value="constructor-arg"/>
     </bean>
+
+    <!--<bean class="cn.sexycode.spring.study.chapter3.Student" id="student" c:name="qzz" c:_0="000" c:_1="111">
+    </bean>-->
 </beans>
