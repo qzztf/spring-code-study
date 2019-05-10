@@ -9,7 +9,9 @@
     <!--    aop config-->
     <aop:config proxy-target-class="true" expose-proxy="true">
         <aop:pointcut id="demoPointcut" expression="this()"/>
+        <aop:advisor advice-ref="simpleAdvice" pointcut="this()"/>
         <aop:aspect ref="conversionService" id="demoAspect">
+            <aop:declare-parents types-matching="Character" implement-interface="java.lang.Cloneable"/>
             <aop:after method="clone" pointcut-ref="demoPointcut" />
         </aop:aspect>
     </aop:config>
