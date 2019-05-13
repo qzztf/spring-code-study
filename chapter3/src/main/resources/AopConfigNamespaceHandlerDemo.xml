@@ -13,6 +13,7 @@
         <aop:aspect ref="conversionService" id="demoAspect">
             <aop:declare-parents types-matching="Character" implement-interface="java.lang.Cloneable"/>
             <aop:after method="clone" pointcut-ref="demoPointcut" />
+            <aop:pointcut id="" expression=""/>
         </aop:aspect>
     </aop:config>
 <!--    <aop:aspectj-autoproxy proxy-target-class="true" expose-proxy="true"/>-->

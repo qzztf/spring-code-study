@@ -703,58 +703,58 @@ http\://www.springframework.org/schema/util=org.springframework.beans.factory.xm
 #### 提供的方法
 
 BeanDefinition parse(Element element, ParserContext parserContext)：解析指定的元素并将结果bean定义注册到所提供的ParserContext中嵌入的`BeanDefinitionRegistry`。
-如果要以嵌套方式使用(例如作为<property/>标记中的内部标记)，实现类必须返回从解析中得到的主要bean定义。如果实现不以嵌套方式使用，则可能返回null。
+如果要以嵌套方式使用(例如作为`<property/>`标记中的内部标记)，实现类必须返回从解析中得到的主要bean定义。如果实现不以嵌套方式使用，则可能返回null。
 
 #### 常用实现类
 常用的就是上面所列的每个 `NamespaceHandler`中注册的解析器。
 
-- ConfigBeanDefinitionParser：解析 <aop:config> 标签
-- AspectJAutoProxyBeanDefinitionParser: 解析 <aop:aspectj-autoproxy> 标签
-- ScopedProxyBeanDefinitionDecorator：解析 <aop:scoped-proxy> 标签
-- PropertyPlaceholderBeanDefinitionParser：解析 <context:property-placeholder> 标签
-- PropertyOverrideBeanDefinitionParser: 解析 <context:property-override> 标签
-- AnnotationConfigBeanDefinitionParser：解析 <context:annotation-config> 标签
-- ComponentScanBeanDefinitionParser: 解析 <context:component-scan> 标签
-- LoadTimeWeaverBeanDefinitionParser： 解析 <context:load-time-weaver> 标签
-- SpringConfiguredBeanDefinitionParser：解析 <context:spring-configured> 标签
-- MBeanExportBeanDefinitionParser：解析 <context:mbean-export> 标签
-- MBeanServerBeanDefinitionParser：解析 <context:mbean-server> 标签
-- ScriptBeanDefinitionParser：解析 <lang:groovy>,<lang:bsh>,<lang:std>。 实例化时需要传入一个脚本工厂类名。分别是 `org.springframework.scripting.groovy.GroovyScriptFactory`, `org.springframework.scripting.bsh.BshScriptFactory`, `org.springframework.scripting.support.StandardScriptFactory` 
-- ScriptingDefaultsParser: 解析 <lang:defaults> 标签
-- ConstantBeanDefinitionParser：解析 <util:constant> 标签
-- PropertyPathBeanDefinitionParser：解析 <util:property-path> 标签
-- ListBeanDefinitionParser：解析 <util:list> 标签
-- SetBeanDefinitionParser：解析 <util:set> 标签
-- MapBeanDefinitionParser：解析 <util:map> 标签
-- PropertiesBeanDefinitionParser：解析 <util:properties> 标签
-- AnnotationDrivenBeanDefinitionParser：解析 <mvc:annotation-driven>，<task:annotation-driven> 标签
-- DefaultServletHandlerBeanDefinitionParser：解析 <mvc:default-servlet-handler> 标签
-- InterceptorsBeanDefinitionParser：解析 <mvc:interceptors> 标签
-- ResourcesBeanDefinitionParser：解析 <mvc:resources> 标签
-- ViewControllerBeanDefinitionParser：解析 <mvc:view-controller>, <mvc:redirect-view-controller>, <mvc:status-controller> 标签
-- ViewResolversBeanDefinitionParser：解析 <mvc:view-resolvers> 标签
-- TilesConfigurerBeanDefinitionParser：解析 <mvc:tiles-configurer> 标签
-- FreeMarkerConfigurerBeanDefinitionParser：解析 <mvc:freemarker-configurer> 标签
-- GroovyMarkupConfigurerBeanDefinitionParser：解析 <mvc:groovy-configurer> 标签
-- ScriptTemplateConfigurerBeanDefinitionParser：解析 <mvc:script-template-configurer> 标签
-- CorsBeanDefinitionParser：解析 <mvc:cors> 标签
-- ExecutorBeanDefinitionParser: 解析 <task:executor> 标签
-- ScheduledTasksBeanDefinitionParser: 解析 <task:scheduled-tasks> 标签
-- SchedulerBeanDefinitionParser: 解析 <task:scheduler> 标签
-- AnnotationDrivenCacheBeanDefinitionParser: 解析 <cache:annotation-driven> 标签
-- CacheAdviceParser: 解析 <cache:advice> 标签
-- JndiLookupBeanDefinitionParser: 解析 <jee:jndi-lookup> 标签
-- LocalStatelessSessionBeanDefinitionParser: 解析 <jee:local-slsb> 标签
-- RemoteStatelessSessionBeanDefinitionParser: 解析 <jee:remote-slsb> 标签
+- ConfigBeanDefinitionParser：解析 `<aop:config>` 标签
+- AspectJAutoProxyBeanDefinitionParser: 解析 `<aop:aspectj-autoproxy>` 标签
+- ScopedProxyBeanDefinitionDecorator：解析 `<aop:scoped-proxy>` 标签
+- PropertyPlaceholderBeanDefinitionParser：解析 `<context:property-placeholder>` 标签
+- PropertyOverrideBeanDefinitionParser: 解析 `<context:property-override>` 标签
+- AnnotationConfigBeanDefinitionParser：解析 `<context:annotation-config>` 标签
+- ComponentScanBeanDefinitionParser: 解析 `<context:component-scan>` 标签
+- LoadTimeWeaverBeanDefinitionParser： 解析 `<context:load-time-weaver>` 标签
+- SpringConfiguredBeanDefinitionParser：解析 `<context:spring-configured>` 标签
+- MBeanExportBeanDefinitionParser：解析 `<context:mbean-export>` 标签
+- MBeanServerBeanDefinitionParser：解析 `<context:mbean-server>` 标签
+- ScriptBeanDefinitionParser：解析 `<lang:groovy>`,`<lang:bsh>`,`<lang:std>`。 实例化时需要传入一个脚本工厂类名。分别是 `org.springframework.scripting.groovy.GroovyScriptFactory`, `org.springframework.scripting.bsh.BshScriptFactory`, `org.springframework.scripting.support.StandardScriptFactory` 
+- ScriptingDefaultsParser: 解析 `<lang:defaults>` 标签
+- ConstantBeanDefinitionParser：解析 `<util:constant>` 标签
+- PropertyPathBeanDefinitionParser：解析 `<util:property-path>` 标签
+- ListBeanDefinitionParser：解析 `<util:list>` 标签
+- SetBeanDefinitionParser：解析 `<util:set>` 标签
+- MapBeanDefinitionParser：解析 `<util:map>` 标签
+- PropertiesBeanDefinitionParser：解析 `<util:properties>` 标签
+- AnnotationDrivenBeanDefinitionParser：解析 `<mvc:annotation-driven>`，`<task:annotation-driven>` 标签
+- DefaultServletHandlerBeanDefinitionParser：解析 `<mvc:default-servlet-handler>` 标签
+- InterceptorsBeanDefinitionParser：解析 `<mvc:interceptors>` 标签
+- ResourcesBeanDefinitionParser：解析 `<mvc:resources>` 标签
+- ViewControllerBeanDefinitionParser：解析 `<mvc:view-controller>`,`<mvc:redirect-view-controller>`, `<mvc:status-controller>` 标签
+- ViewResolversBeanDefinitionParser：解析 `<mvc:view-resolvers> `标签
+- TilesConfigurerBeanDefinitionParser：解析 `<mvc:tiles-configurer>` 标签
+- FreeMarkerConfigurerBeanDefinitionParser：解析 `<mvc:freemarker-configurer>` 标签
+- GroovyMarkupConfigurerBeanDefinitionParser：解析 `<mvc:groovy-configurer>` 标签
+- ScriptTemplateConfigurerBeanDefinitionParser：解析 `<mvc:script-template-configurer>`标签
+- CorsBeanDefinitionParser：解析 `<mvc:cors>` 标签
+- ExecutorBeanDefinitionParser: 解析 `<task:executor>` 标签
+- ScheduledTasksBeanDefinitionParser: 解析 `<task:scheduled-tasks>` 标签
+- SchedulerBeanDefinitionParser: 解析 `<task:scheduler>` 标签
+- AnnotationDrivenCacheBeanDefinitionParser: 解析 `<cache:annotation-driven>` 标签
+- CacheAdviceParser: 解析 `<cache:advice>` 标签
+- JndiLookupBeanDefinitionParser: 解析 `<jee:jndi-lookup>` 标签
+- LocalStatelessSessionBeanDefinitionParser: 解析 `<jee:local-slsb>` 标签
+- RemoteStatelessSessionBeanDefinitionParser: 解析 `<jee:remote-slsb>` 标签
 
 ### BeanDefinitionDecorator
 
-`DefaultBeanDefinitionDocumentReader`使用的接口来处理自定义的嵌套标签(直接位于<bean>)标签下)。还可以装饰<bean>标签的自定义属性。实现类可以自由地将自定义标签中的元数据转换为所需的任意多个bean定义，并转换所包含的bean定义标签，甚至可能返回一个完全不同的`org.springframework.bean .factory.config.BeanDefinition`替换原来的。
+`DefaultBeanDefinitionDocumentReader`使用的接口来处理自定义的嵌套标签(直接位于`<bean>`)标签下)。还可以装饰`<bean>`标签的自定义属性。实现类可以自由地将自定义标签中的元数据转换为所需的任意多个bean定义，并转换所包含的bean定义标签，甚至可能返回一个完全不同的`org.springframework.bean .factory.config.BeanDefinition`替换原来的。
 `BeanDefinitionDecorator` 应该意识到它们可能是解析链的一部分。特别是，应该知道，以前的BeanDefinitionDecorator可能已经用`ProxyFactoryBean`定义替换了原来的BeanDefinition，该定义允许添加自定义拦截器。希望向封闭bean添加拦截器的 `BeanDefinitionDecorator`应该扩展`AbstractInterceptorDrivenBeanDefinitionDecorator`，它处理解析链，确保只创建一个代理，并且它包含链中的所有拦截器。 解析器从`NamespaceHandler`中为自定义标签所在的命名空间定位一个`BeanDefinitionDecorator`
 
 #### 常用实现类
 
-- ScopedProxyBeanDefinitionDecorator：负责解析<aop:scope-proxy/>标签
+- ScopedProxyBeanDefinitionDecorator：负责解析`<aop:scope-proxy/>`标签
 - AbstractInterceptorDrivenBeanDefinitionDecorator：希望向生成的bean添加拦截器的`BeanDefinitionDecorator`的基本实现。这个基类控制`ProxyFactoryBean` bean 定义的创建，并将原始定义包装为`ProxyFactoryBean`目标属性的内部bean定义。正确处理链接，确保只创建一个`ProxyFactoryBean` 定义。如果前面的BeanDefinitionDecorator已经创建了`ProxyFactoryBean`，则只需将拦截器添加到现有定义中。子类只需要向它们希望添加的拦截器创建bean定义
 
 ## BeanDefinitionRegistry 注册bean 定义
