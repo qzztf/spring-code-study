@@ -83,11 +83,15 @@ Bean的创建以及实例化在`org.springframework.beans.factory.support.Abstra
 
 参数： 
 
-- `beanName`: Bean的名称。
+- `String beanName`: Bean的名称。
 - `RootBeanDefinition mbd`: Bean定义。就像菜谱。
 - `Object[] args`: 获取Bean时的参数
 
 大致过程如下：
 
-1. 调用`InstantiationAwareBeanPostProcessor`方法，这里要注意一下，**如果这这个方法返回了非Null对象，那么将不会进行实例化实际的对象，而是用这个方法返回的对象。如果有多个`InstantiationAwareBeanPostProcessor`，那么只要返回了非Null，后面的`InstantiationAwareBeanPostProcessor`就不会调用了。**`InstantiationAwareBeanPostProcessor`有两个方法。
-   - 
+1. 调用`InstantiationAwareBeanPostProcessor`接口方法。此接口继承自`BeanPostProcessor`，在实例化前调用，实例化后回调，但在显式属性设置或自动装配发生之前回调。
+   通常用于禁止特定目标bean的默认实例化，例如创建具有特殊目标源的代理(池化目标、延迟初始化目标等)，或者实现额外的注入策略，如字段注入。
+   注意:此接口是一个专用接口，主要用于框架内部使用。建议尽可能实现简单的BeanPostProcessor接口，或者从InstantiationAwareBeanPostProcessorAdapter派生，以便屏蔽对该接口的扩展。这里要注意一下，**如果这这个方法返回了非Null对象，那么将不会进行实例化实际的对象，而是用这个方法返回的对象。如果有多个`InstantiationAwareBeanPostProcessor`，那么只要返回了非Null，后面的`InstantiationAwareBeanPostProcessor`就不会调用了。**`InstantiationAwareBeanPostProcessor`有两个方法：
+   - `postProcessBeforeInstantiation` : 在实例化目标bean之前应用此BeanPostProcessor。返回的bean对象可以代替目标bean用作代理，从而有效地抑制了目标bean的默认实例化。
+     如果此方法返回非空对象，则bean创建过程将短路。应用的惟一进一步处理是配置beanpostprocessor的postprocessafterinitial回调函数。
+     此回调仅应用于具有bean类的bean定义。特别是，它不会应用于带有工厂方法的bean。
