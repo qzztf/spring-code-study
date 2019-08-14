@@ -31,10 +31,6 @@
 
 在Spring容器中，Bean的名字(id )是唯一的。
 
-#### Object getBean(String name) throws BeansException;
-
-该方法返回指定 Bean 的一个实例，该实例可以是共享的，也可以是独立的。如果在这个工厂实例中找不到bean，会从父工厂中取。
-
 1. 先处理名称，获取真正的Bean的名称。
 
     1. 如果 name 以 `&`开头，去掉`&`。
@@ -76,5 +72,22 @@
 
 ### 通过Class类型获取Bean
 
+在Spring中Bean的名称才是唯一的标识，所以根据类型获取Bean，会先获取到所有该类型的Bean 的名称。
 
+1. 获取符合类型的Bean名称。如果有泛型的话，调用`doGetBeanNamesForType(ResolvableType type, boolean includeNonSingletons, boolean allowEagerInit)`方法；没有泛型则调用`getBeanNamesForType(@Nullable Class<?> type, boolean includeNonSingletons, boolean allowEagerInit)`方法。找到一个那就恭喜了。
+2. 如果获取的Bean名称多于1个，则需要根据优先权选择出一个名称，然后再跟据这个名称去获取Bean。
 
+### Bean实例化
+
+Bean的创建以及实例化在`org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#createBean(java.lang.String, org.springframework.beans.factory.support.RootBeanDefinition, java.lang.Object[])`方法中实现。
+
+参数： 
+
+- `beanName`: Bean的名称。
+- `RootBeanDefinition mbd`: Bean定义。就像菜谱。
+- `Object[] args`: 获取Bean时的参数
+
+大致过程如下：
+
+1. 调用`InstantiationAwareBeanPostProcessor`方法，这里要注意一下，**如果这这个方法返回了非Null对象，那么将不会进行实例化实际的对象，而是用这个方法返回的对象。如果有多个`InstantiationAwareBeanPostProcessor`，那么只要返回了非Null，后面的`InstantiationAwareBeanPostProcessor`就不会调用了。**`InstantiationAwareBeanPostProcessor`有两个方法。
+   - 
