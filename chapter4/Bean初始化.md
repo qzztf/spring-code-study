@@ -157,4 +157,4 @@ Bean的创建以及实例化在`org.springframework.beans.factory.support.Abstra
 
 4. 调用后处理器`MergedBeanDefinitionPostProcessor`接口的`postProcessMergedBeanDefinition`方法。此接口用于在运行时对合并的bean定义（原始bean定义的已处理副本）进行后处理。
 
-   例如，`postProcessMergedBeanDefinition`方法可以内省bean定义，以便在对bean的实际实例进行后处理之前准备一些缓存的元数据。它还允许修改bean定义，但是只允许修改实际上用于并发修改的定义属性。本质上，这只适用于在RootBeanDefinition本身上定义的操作，而不适用于其基类的属性。
+   例如，`postProcessMergedBeanDefinition`方法可以内省bean定义，以便实际在对bean实例进行后处理之前准备一些缓存的元数据。并且这个接口还允许修改bean定义，但是只允许修改实际上用于并发修改的定义属性。本质上，这只适用于在RootBeanDefinition本身上定义的操作，而不适用于其基类的属性。
