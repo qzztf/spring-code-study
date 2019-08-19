@@ -79,7 +79,9 @@
 
 ### Bean实例化
 
-Bean的创建以及实例化在`org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#createBean(java.lang.String, org.springframework.beans.factory.support.RootBeanDefinition, java.lang.Object[])`方法中实现。
+Bean的创建以及实例化
+
+作为一个可扩展的框架，Spring在Bean实例化的过程中预留了大量的扩展点用于对框架进行扩展。包括修改Bean定义，获取对象类型，实例化之前，实例化的方式，实例化之后，初始化之前，初始化，初始化之后等方面。具体在`org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#createBean(java.lang.String, org.springframework.beans.factory.support.RootBeanDefinition, java.lang.Object[])`方法中实现。
 
 参数： 
 
@@ -171,4 +173,4 @@ Bean的创建以及实例化在`org.springframework.beans.factory.support.Abstra
 
 6. Bean已经创建出来了，接下来就是初始化这个Bean。包括属性填充，Aware接口，`BeanPostProcessor`接口`postProcessBeforeInitialization`方法，`InitializingBean`的`afterPropertiesSet`方法，自定义init方法调用，调用`BeanPostProcessor`接口`postProcessAfterInitialization`方法。
 
-7. 注册`DisposableBean`， 当容器销毁回调用。
+7. 注册`DisposableBean`， 当容器销毁时回调。

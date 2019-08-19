@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd" default-lazy-init="default">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
   <bean class="cn.sexycode.spring.study.chapter4.Student" id="student" name="student2, student3,student4">
     <property name="name" value="aaaaa"/>
   </bean>
+  <bean class="cn.sexycode.spring.study.chapter4.InstantiationAwareBeanPostProcessorImpl" id="awareBeanPostProcessor"/>
 
 </beans>

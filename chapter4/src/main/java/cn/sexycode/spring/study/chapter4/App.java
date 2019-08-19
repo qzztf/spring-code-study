@@ -1,5 +1,6 @@
 package cn.sexycode.spring.study.chapter4;
 
+import org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 
@@ -16,7 +17,7 @@ public class App {
         XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(factory);
         // 3. 加载bean 定义的入口方法
         reader.loadBeanDefinitions("app.xml");
-
-        factory.getBean(Student.class);
+        factory.addBeanPostProcessor(factory.getBean("awareBeanPostProcessor", InstantiationAwareBeanPostProcessor.class));
+        System.out.println(factory.getBean(Student.class));
     }
 }
