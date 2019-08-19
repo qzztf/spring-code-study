@@ -1,9 +1,12 @@
 package cn.sexycode.spring.study.chapter4;
 
+import org.springframework.beans.factory.annotation.Value;
+
 /**
  *
  */
 public class Student {
+    @Value("${name}")
     private String name;
     private String age;
 
