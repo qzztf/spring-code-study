@@ -1,14 +1,14 @@
 package cn.sexycode.spring.study.chapter4;
 
-import org.springframework.beans.factory.annotation.Value;
-
 /**
  *
  */
 public class Student {
-    @Value("${name}")
     private String name;
+
     private String age;
+
+    private ClassRoom classRoom;
 
     public String getName() {
         return name;
@@ -26,4 +26,11 @@ public class Student {
         this.age = age;
     }
 
+    public ClassRoom getClassRoom() {
+        return classRoom;
+    }
+
+    public void setClassRoom(ClassRoom classRoom) {
+        this.classRoom = classRoom;
+    }
 }

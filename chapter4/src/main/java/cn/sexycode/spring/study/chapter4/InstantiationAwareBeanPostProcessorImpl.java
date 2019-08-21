@@ -12,7 +12,7 @@ public class InstantiationAwareBeanPostProcessorImpl implements InstantiationAwa
 
     @Override
     public boolean postProcessAfterInstantiation(Object bean, String beanName) throws BeansException {
-        return false;
+        return true;
     }
 
     @Override

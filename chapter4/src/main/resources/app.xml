@@ -4,7 +4,9 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
   <bean class="cn.sexycode.spring.study.chapter4.Student" id="student" name="student2, student3,student4">
     <property name="name" value="aaaaa"/>
+    <property name="classRoom" ref="classRoom"/>
   </bean>
+  <bean class="cn.sexycode.spring.study.chapter4.ClassRoom" id="classRoom" />
   <bean class="cn.sexycode.spring.study.chapter4.InstantiationAwareBeanPostProcessorImpl" id="awareBeanPostProcessor"/>
 
 </beans>

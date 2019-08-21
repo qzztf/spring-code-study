@@ -70,14 +70,14 @@
 
 6. 拿到实例对象之后，如果获取时传了类型，那么将使用`TypeConverter`进行类型转换，如果转换成功，则返回这个Bean，否则将抛出异常。
 
-### 通过Class类型获取Bean
+### 通过Class 类型获取Bean
 
 在Spring中Bean的名称才是唯一的标识，所以根据类型获取Bean，会先获取到所有该类型的Bean 的名称。
 
 1. 获取符合类型的Bean名称。如果有泛型的话，调用`doGetBeanNamesForType(ResolvableType type, boolean includeNonSingletons, boolean allowEagerInit)`方法；没有泛型则调用`getBeanNamesForType(@Nullable Class<?> type, boolean includeNonSingletons, boolean allowEagerInit)`方法。找到一个那就恭喜了。
 2. 如果获取的Bean名称多于1个，则需要根据优先权选择出一个名称，然后再跟据这个名称去获取Bean。
 
-### Bean实例化
+### Bean 实例化
 
 Bean的创建以及实例化
 
@@ -114,7 +114,7 @@ Bean的创建以及实例化
      	}
      ```
    
-   - `postProcessAfterInstantiation`: 当`postProcessBeforeInstantiation` 方法返回了非`null`对象时，则会调用此方法做进一步的处理。
+   - `postProcessAfterInitialization`: 当`postProcessBeforeInstantiation` 方法返回了非`null`对象时，则会调用此方法做进一步的处理。
    
      ```java
      bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
@@ -157,13 +157,13 @@ Bean的创建以及实例化
 
       
 
-4. 调用后处理器`MergedBeanDefinitionPostProcessor`接口的`postProcessMergedBeanDefinition`方法。此接口用于在运行时对合并的bean定义（原始bean定义的已处理副本）进行后处理。
+4. Bean已经创建出来了，接下来就是初始化这个Bean。先调用后处理器`MergedBeanDefinitionPostProcessor`接口的`postProcessMergedBeanDefinition`方法处理Bean定义。此接口用于在运行时对合并的bean定义（原始bean定义的已处理副本）进行后处理。
 
    例如，`postProcessMergedBeanDefinition`方法可以内省bean定义，以便实际在对bean实例进行后的处理操作之前准备一些缓存的元数据，并且这个接口还允许修改bean定义。
    
    
 
-5. 暴露Bean，用于解决循环依赖问题，关键代码如下：
+5. 提前暴露Bean，用于解决循环依赖问题，这个时候的Bean基本是个空的Bean。关键代码如下：
 
    ```java
    addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
@@ -171,6 +171,25 @@ Bean的创建以及实例化
 
    先将Bean添加到一个Map中，后面取依赖Bean的时候会先检查这个Map。
 
-6. Bean已经创建出来了，接下来就是初始化这个Bean。包括属性填充，Aware接口，`BeanPostProcessor`接口`postProcessBeforeInitialization`方法，`InitializingBean`的`afterPropertiesSet`方法，自定义init方法调用，调用`BeanPostProcessor`接口`postProcessAfterInitialization`方法。
+6. 真正初始化的过程。包括`InstantiationAwareBeanPostProcessor`接口`postProcessBeforeInitialization`方法，属性填充，Aware接口，`BeanPostProcessor`接口`postProcessBeforeInitialization`方法，`InitializingBean`的`afterPropertiesSet`方法，自定义init方法调用，调用`BeanPostProcessor`接口`postProcessAfterInitialization`方法。
 
 7. 注册`DisposableBean`， 当容器销毁时回调。
+
+可以看一下下面的流程图，对实例化过程有个大概的了解。
+
+![Bean实例化过程](Bean初始化/Bean实例化过程.png)
+
+### 初始化过程中的扩展点
+
+这里只区分实例化和初始化两个阶段。可以看一下图：
+
+![Bean实例化过程中组件作用范围](Bean初始化/Bean实例化过程中组件作用范围.png)
+
+#### 实例化之前
+
+在实例化之前`InstantiationAwareBeanPostProcessor`有机会去阻拦常规的初始化流程，可以创建我们的代理对象。主要涉及到`Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName)`和`Object postProcessAfterInitialization(Object bean, String beanName)`方法。这里`Object postProcessAfterInitialization(Object bean, String beanName)`方法实际上是`BeanPostProcessor`接口的方法，主要用在Bean初始化后做一些自定义操作。**这个方法其实应该归到初始化之后阶段**。
+
+如果上面返回的是`null`，那么则走常规实例化流程。需要的话可以从`SmartInstantiationAwareBeanPostProcessor`接口的`Constructor<?>[] determineCandidateConstructors(Class<?> beanClass, String beanName)`方法中返回构造方法
+
+#### 实例化之后
+
