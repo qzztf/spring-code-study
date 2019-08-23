@@ -194,3 +194,127 @@ room1
 ```
 
 可以看出来还是很方便的。
+
+**注： 当嵌套对象为空时，默认获取嵌套对象的属性会抛出异常。**这时可以加一个设置：
+
+> ```java
+> wrapper.setAutoGrowNestedPaths(true);
+> System.out.println("嵌套对象为空时：" + wrapper.getPropertyValue("classRoom.name"));
+> ```
+
+该属性的意义是自动扩展嵌套属性，按照默认值来初始化属性。此处就会将`classRoom`初始化，并且里面的属性为空。
+
+```java
+嵌套对象为空时：null
+```
+
+### 设置属性值
+
+可以通过`setPropertyValue`方法来设置属性值。同上，当嵌套对象为空时，不能设置嵌套对象的属性，设置`wrapper.setAutoGrowNestedPaths(true)`即可。
+
+注意以下代码：
+
+```java
+private String age;
+
+wrapper.setPropertyValue("age",1);
+```
+
+在这里设置属性值的时候是整数型，但是`age`声明的时候是String。BeanWrapper是如何正确的赋值的呢？
+
+## PropertyEditor
+
+`BeanWrapperImpl`内部会委托给`TypeConverterDelegate`类，先查找自定义`PropertyEditor`, 如果没有找到的话，则查找ConversionService`，没有的话查找默认的`PropertyEditor`,没有的话使用内部定义好的转换策略（按类型去判断，然后去转换）。
+
+`PropertyEditor`属于Java Bean规范里面的类，可以给GUI程序设置对象属性值提供方便，所以接口里有一些和GUI相关的方法，显然目前已经过时了。同时，官方文档上解释，它是线程不安全的。必须得有一个默认构造函数。可以想象一下，在界面上填入一个值，这个值一般来说都是`String`类型的，填入之后这个值能自动设置到对应的对象中（ 这里纯粹是我意淫的，对`awt`并不是很熟，不知道是不是这样）。了解安卓编程的朋友可能知道，我们要取界面上填的值，通常要拿到界面元素，然后再拿到值，然后再设置到对象中去。当界面上有很多个输入控件时，这样繁琐的操作，简直要人命。所以安卓后来出了数据绑定。
+
+BeanWrapperImpl内置了一些 `PropertyEditor`。
+
+```java
+private void createDefaultEditors() {
+		this.defaultEditors = new HashMap<>(64);
+
+		// Simple editors, without parameterization capabilities.
+		// The JDK does not contain a default editor for any of these target types.
+		this.defaultEditors.put(Charset.class, new CharsetEditor());
+		this.defaultEditors.put(Class.class, new ClassEditor());
+		this.defaultEditors.put(Class[].class, new ClassArrayEditor());
+		this.defaultEditors.put(Currency.class, new CurrencyEditor());
+		this.defaultEditors.put(File.class, new FileEditor());
+		this.defaultEditors.put(InputStream.class, new InputStreamEditor());
+		this.defaultEditors.put(InputSource.class, new InputSourceEditor());
+		this.defaultEditors.put(Locale.class, new LocaleEditor());
+		this.defaultEditors.put(Path.class, new PathEditor());
+		this.defaultEditors.put(Pattern.class, new PatternEditor());
+		this.defaultEditors.put(Properties.class, new PropertiesEditor());
+		this.defaultEditors.put(Reader.class, new ReaderEditor());
+		this.defaultEditors.put(Resource[].class, new ResourceArrayPropertyEditor());
+		this.defaultEditors.put(TimeZone.class, new TimeZoneEditor());
+		this.defaultEditors.put(URI.class, new URIEditor());
+		this.defaultEditors.put(URL.class, new URLEditor());
+		this.defaultEditors.put(UUID.class, new UUIDEditor());
+		this.defaultEditors.put(ZoneId.class, new ZoneIdEditor());
+
+		// Default instances of collection editors.
+		// Can be overridden by registering custom instances of those as custom editors.
+		this.defaultEditors.put(Collection.class, new CustomCollectionEditor(Collection.class));
+		this.defaultEditors.put(Set.class, new CustomCollectionEditor(Set.class));
+		this.defaultEditors.put(SortedSet.class, new CustomCollectionEditor(SortedSet.class));
+		this.defaultEditors.put(List.class, new CustomCollectionEditor(List.class));
+		this.defaultEditors.put(SortedMap.class, new CustomMapEditor(SortedMap.class));
+
+		// Default editors for primitive arrays.
+		this.defaultEditors.put(byte[].class, new ByteArrayPropertyEditor());
+		this.defaultEditors.put(char[].class, new CharArrayPropertyEditor());
+
+		// The JDK does not contain a default editor for char!
+		this.defaultEditors.put(char.class, new CharacterEditor(false));
+		this.defaultEditors.put(Character.class, new CharacterEditor(true));
+
+		// Spring's CustomBooleanEditor accepts more flag values than the JDK's default editor.
+		this.defaultEditors.put(boolean.class, new CustomBooleanEditor(false));
+		this.defaultEditors.put(Boolean.class, new CustomBooleanEditor(true));
+
+		// The JDK does not contain default editors for number wrapper types!
+		// Override JDK primitive number editors with our own CustomNumberEditor.
+		this.defaultEditors.put(byte.class, new CustomNumberEditor(Byte.class, false));
+		this.defaultEditors.put(Byte.class, new CustomNumberEditor(Byte.class, true));
+		this.defaultEditors.put(short.class, new CustomNumberEditor(Short.class, false));
+		this.defaultEditors.put(Short.class, new CustomNumberEditor(Short.class, true));
+		this.defaultEditors.put(int.class, new CustomNumberEditor(Integer.class, false));
+		this.defaultEditors.put(Integer.class, new CustomNumberEditor(Integer.class, true));
+		this.defaultEditors.put(long.class, new CustomNumberEditor(Long.class, false));
+		this.defaultEditors.put(Long.class, new CustomNumberEditor(Long.class, true));
+		this.defaultEditors.put(float.class, new CustomNumberEditor(Float.class, false));
+		this.defaultEditors.put(Float.class, new CustomNumberEditor(Float.class, true));
+		this.defaultEditors.put(double.class, new CustomNumberEditor(Double.class, false));
+		this.defaultEditors.put(Double.class, new CustomNumberEditor(Double.class, true));
+		this.defaultEditors.put(BigDecimal.class, new CustomNumberEditor(BigDecimal.class, true));
+		this.defaultEditors.put(BigInteger.class, new CustomNumberEditor(BigInteger.class, true));
+
+		// Only register config value editors if explicitly requested.
+		if (this.configValueEditorsActive) {
+			StringArrayPropertyEditor sae = new StringArrayPropertyEditor();
+			this.defaultEditors.put(String[].class, sae);
+			this.defaultEditors.put(short[].class, sae);
+			this.defaultEditors.put(int[].class, sae);
+			this.defaultEditors.put(long[].class, sae);
+		}
+	}
+```
+
+这里没有注册`String`, 所以走的是内置方案，直接调用`toString`方法
+
+```java
+if (String.class == requiredType && ClassUtils.isPrimitiveOrWrapper(convertedValue.getClass())) {
+					// We can stringify any primitive value...
+					return (T) convertedValue.toString();
+				}
+```
+
+### 自定义`PropertyEditor`
+
+当Spring提供的`PropertyEditor`无法满足我们的需求时，我们可以自定义`PropertyEditor`。
+
+一般不直接实现接口，还是继承`PropertyEditorSupport`类。
+
