@@ -222,11 +222,11 @@ wrapper.setPropertyValue("age",1);
 
 在这里设置属性值的时候是整数型，但是`age`声明的时候是String。BeanWrapper是如何正确的赋值的呢？
 
+`BeanWrapperImpl`内部会委托给`TypeConverterDelegate`类，先查找自定义`PropertyEditor`, 如果没有找到的话，则查找`ConversionService`，没有的话查找默认的`PropertyEditor`,再没有的话使用内部定义好的转换策略（按类型去判断，然后去转换）。
+
 ## PropertyEditor
 
-`BeanWrapperImpl`内部会委托给`TypeConverterDelegate`类，先查找自定义`PropertyEditor`, 如果没有找到的话，则查找ConversionService`，没有的话查找默认的`PropertyEditor`,没有的话使用内部定义好的转换策略（按类型去判断，然后去转换）。
-
-`PropertyEditor`属于Java Bean规范里面的类，可以给GUI程序设置对象属性值提供方便，所以接口里有一些和GUI相关的方法，显然目前已经过时了。同时，官方文档上解释，它是线程不安全的。必须得有一个默认构造函数。可以想象一下，在界面上填入一个值，这个值一般来说都是`String`类型的，填入之后这个值能自动设置到对应的对象中（ 这里纯粹是我意淫的，对`awt`并不是很熟，不知道是不是这样）。了解安卓编程的朋友可能知道，我们要取界面上填的值，通常要拿到界面元素，然后再拿到值，然后再设置到对象中去。当界面上有很多个输入控件时，这样繁琐的操作，简直要人命。所以安卓后来出了数据绑定。
+`PropertyEditor`属于Java Bean规范里面的类，可以给GUI程序设置对象属性值提供方便，所以接口里有一些和GUI相关的方法，显然目前已经过时了。同时，官方文档上解释，它是线程不安全的。必须得有一个默认构造函数。可以想象一下，在界面上填入一个值，这个值一般来说都是`String`类型的，填入之后这个值能自动设置到对应的对象中（ 这里纯粹是我意淫的，对`awt`并不是很熟，不知道是不是这样）。了解安卓编程的朋友可能知道，我们要取界面上填的值，通常要拿到界面元素，然后再拿到值，然后再设置到对象中去。当界面上有很多个输入控件时，这样繁琐的操作，简直要人命。所以安卓后来出了数据绑定。这里有一篇[文章](https://www.iteye.com/blog/stamen-1525668)讲得很好。
 
 BeanWrapperImpl内置了一些 `PropertyEditor`。
 
@@ -316,5 +316,75 @@ if (String.class == requiredType && ClassUtils.isPrimitiveOrWrapper(convertedVal
 
 当Spring提供的`PropertyEditor`无法满足我们的需求时，我们可以自定义`PropertyEditor`。
 
-一般不直接实现接口，还是继承`PropertyEditorSupport`类。
+一般不直接实现接口，而是继承`PropertyEditorSupport`类。Spring中大多数场景都是将传入的字符串转换成对应的属性值，需要重写`setAsText`方法。
 
+```java
+/**
+ * 转换String -> ClassRoom;
+ */
+public class ClassRoomPropertyEditor extends PropertyEditorSupport {
+    @Override
+    public void setAsText(String text) throws IllegalArgumentException {
+        //将逗号分隔的值转换成对象的属性值：room3,3
+        String[] strings = Optional.ofNullable(text).orElseGet(String::new).split(",");
+        ClassRoom classRoom = new ClassRoom();
+        classRoom.setName(strings[0]);
+        classRoom.setSize(Integer.parseInt(strings[1]));
+        setValue(classRoom);
+    }
+}
+```
+
+上面的代码中，将字符串进行分隔，第一个值作为`ClassRoom`的`name`值，第二个值作为`size`。如何使用这个`PropertyEditor`?
+
+先注册这个类，再设置`Student`的`classRoom`属性：
+
+```java
+wrapper = new BeanWrapperImpl(student);
+//注解自定义PropertyEditor
+wrapper.registerCustomEditor(ClassRoom.class, new ClassRoomPropertyEditor());
+wrapper.setPropertyValue("classRoom", "room3,3");
+```
+
+这样就给`Student`类的`classRoom`属性进行了初始化。
+
+## `ConversionService`
+
+`ConversionService`是Spring提供的一套通用的类型转换机制的入口，相比`PropertyEditor`来说：
+
+1. 支持的类型转换范围更广。
+2. 支持从父类型转换为子类型，即多态。
+3. 省去了Java GUI相关的概念。
+4. 线程安全。
+
+### 方法
+
+- boolean canConvert(@Nullable Class<?> sourceType, Class<?> targetType)：如果可以将sourceType对象转换为targetType，则返回true。
+
+  如果此方法返回true，则意味着`convert(Object, Class)`方法能够将`sourceType`实例转换为`targetType`。
+
+  关于集合、数组和Map类型需要特别注意：**对于集合、数组和Map类型之间的转换，此方法将返回true，即使在底层元素不可转换的情况下，转换过程仍然可能生成一个`ConversionException`。在处理集合和映射时，调用者需要处理这种特殊情况。**
+
+- boolean canConvert(@Nullable TypeDescriptor sourceType, TypeDescriptor targetType)：如果可以将sourceType对象转换为targetType，则返回true。`TypeDescriptor `提供关于将要发生转换的源和目标位置的附加上下文信息，通常是对象字段或属性的位置。
+
+  如果此方法返回true，则意味着`convert(Object、TypeDescriptor、TypeDescriptor)`能够将`sourceType`实例转换为`targetType`。
+
+  关于集合、数组和Map类型需要特别注意：**对于集合、数组和Map类型之间的转换，此方法将返回true，即使在底层元素不可转换的情况下，转换过程仍然可能生成一个`ConversionException`。在处理集合和映射时，调用者需要处理这种特殊情况。**
+
+- <T> T convert(@Nullable Object source, Class<T> targetType)：将给定的对象转换为指定的`targetType`类型对象。
+
+- Object convert(@Nullable Object source, @Nullable TypeDescriptor sourceType, TypeDescriptor targetType)：将给定的对象转换为指定的`targetType`类型对象。`TypeDescriptor `提供关于将要发生转换的源和目标位置的附加上下文信息，通常是对象字段或属性位置。
+
+## `Converter`
+
+`Converter`是具体的某类转换器接口，负责将某个类型的对象转成另外一个类型的对象。并且是一个函数式接口。
+
+就提供了一个转换方法：
+
+- T convert(S source)：转换对象类型。
+
+## `ConverterRegistry`
+
+用来注册`Converter`。
+
+# `DirectFieldAccessor`
