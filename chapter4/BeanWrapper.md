@@ -383,8 +383,152 @@ wrapper.setPropertyValue("classRoom", "room3,3");
 
 - T convert(S source)：转换对象类型。
 
+## `ConverterFactory`
+
+生产一种`Converter`，这种`Converter`可以将对象从`S`转换为`R`的子类型。也就是说支持多态功能。
+实现类还可以实现`ConditionalConverter`接口。
+
+- <T extends R> Converter<S, T> getConverter(Class<T> targetType)：根据目标类型`T`获取`Converter`，该`Converter`将源类型`S`转换成`R`的子类型`T`。
+
+## `ConditionalConverter`
+
+该接口可以根据源和目标`TypeDescriptor`的属性选择性地执行`Converter`、`GenericConverter`或`ConverterFactory`。
+
+通常用于根据字段或类特征(如注解或方法)的存在选择性地匹配自定义转换逻辑。例如，当从`String`字段转换为`Date`字段时，如果目标字段还有`@DateTimeFormat`注解，则实现类`matches`方法可能返回`true`，也就是说如果目标字段上没有`@DateTimeFormat`注解，那么可能不会应用该转换，该接口可以控制需不需要转换。
+
+另外一个例子，当从字符串字段转换为`Account`字段时，如果目标`Account`类定义了公共静态`findAccount(String)`方法，则实现类`matches`方法可能返回`true`。
+
+- boolean matches(TypeDescriptor sourceType, TypeDescriptor targetType)：是否需要转换。
+
+## `GenericConverter`
+
+这是最灵活的转换器SPI接口，也是最复杂的。它的灵活性在于`GenericConverter`可以支持多个源/目标类型对之间的转换(参见`getConvertibleTypes()`方法)。此外，`GenericConverter`实现类在类型转换过程中可以访问源/目标字段上下文，允许解析源和目标字段元数据，如注解和泛型信息，这些信息可用于复杂转换逻辑。
+
+当比较简单的`Converter`或`ConverterFactory`接口够用时，通常不应使用此接口。
+实现类还可以实现`ConditionalConverter`接口。
+
+- Set<ConvertiblePair> getConvertibleTypes()：返回此`Converter`可以在源类型和目标类型之间转换的类型。
+  Set中每条都是一个可转换的源到目标类型对。`ConvertiblePair`保存源类型与目标类型的映射关系。
+  对于`ConditionalConverter`，此方法可能返回`null`，意味着该`GenericConverter`适用于所有源与目标类型对。未实现`ConditionalConverter`接口的实现类，此方法不能返回`null`。
+
 ## `ConverterRegistry`
 
 用来注册`Converter`。
+
+## ConversionService 组件结构
+
+![ConversionService结构](BeanWrapper/ConversionService结构.png)
+
+`ConversionService`提供转换功能的统一入口，`ConverterRegistry`提供`Converter`注册功能，将`Converter`集中起来，转换时从中查出对应的`Converter`。`Converter`负责具体的转换过程。`ConfigurableConversionService`继承自`ConversionService`和`ConverterRegistry`，集成转换和注册功能。
+
+下面看一下具体的实现类。
+
+## `GenericConversionService`类
+
+基础转换服务实现，适用于大部分情况。直接实现`ConfigurableConversionService`接口，实现了注册与转换功能。
+
+## `DefaultConversionService`类
+
+继承自`GenericConversionService`，配置了适合大多数环境的`Converter`。
+该类使用时可以直接实例化，暴露出静态方法`addDefaultConverters(ConverterRegistry)`，用于对某个`ConverterRegistry`实例进行特殊处理，也就是说当某个`ConverterRegistry`需要增加一个默认的`Converter`时，可以调用这个方法。
+
+这里我们可以直接使用`DefaultConversionService`类，Spring已经配置了一些`Converter`。
+
+```java
+student = new Student();
+wrapper = new BeanWrapperImpl(student);
+wrapper.setAutoGrowNestedPaths(true);
+//注册ConversionService
+wrapper.setConversionService(new DefaultConversionService());
+wrapper.setPropertyValue("classRoom.size", "3");
+System.out.println("ConversionService, 设置嵌套对象的属性 size：" + wrapper.getPropertyValue("classRoom.size"));
+//这里将字符串转换成数字
+```
+
+## Spring 提供的`Converter`
+
+在Spring 的`org.springframework.core.convert.support`包中内置了一些转换器，提供数组、集合、字符串、数字、枚举、对象、Map、Boolean等之间的转换功能。
+
+|                   | Array                        | Collection                        | Stream                  | ByteBuffer        | String(Character)             | Number(Integer)                  | Object                        | Enum                            | Map                 |Boolean |Charset |Currency |Locale |Properties |TimeZone |UUID |Calendar |
+| ----------------- | ---------------------------- | --------------------------------- | ----------------------------- | -------------------------------- | ----------------------------- | ------------------------------- | ------------------- |------------------- | ----------------- | ----------------- | ----------------- | ----------------- | ----------------- | ----------------- | ----------------- | ----------------- | ----------------- |
+| Array             | `ArrayToArrayConverter`      | `ArrayToCollectionConverter`      | `StreamConverter` | `ByteBufferConverter` | `ArrayToStringConverter`      |                                  | `ArrayToObjectConverter`      |                                 |                     |||||||||
+| Collection        | `CollectionToArrayConverter` | `CollectionToCollectionConverter` | `StreamConverter` |  | `CollectionToStringConverter` |                                  | `CollectionToObjectConverter` |                                 |                     |||||||||
+| Stream | `StreamConverter` | `StreamConverter` |  |  |  | |  | | |||||||||
+| String(Character) | `StringToArrayConverter`     | `StringToCollectionConverter` |  |  | `StringToCharacterConverter` | `StringToNumberConverterFactory` |                               | `StringToEnumConverterFactory` |                     |`StringToBooleanConverter`|`StringToCharsetConverter`|`StringToCurrencyConverter`|`StringToLocaleConverter`|`StringToPropertiesConverter`|`StringToTimeZoneConverter`|`StringToUUIDConverter`||
+| ByteBuffer | `ByteBufferConverter` |  |  |  |  |  | `ByteBufferConverter` |  | |||||||||
+| Number(Integer)   |                              |                                   |                                   |                                   | `NumberToCharacterConverter`  | `NumberToNumberConverterFactory` |                               | `IntegerToEnumConverterFactory` |                     |||||||||
+| Object            | `ObjectToArrayConverter`     | `ObjectToCollectionConverter`     |      | `ByteBufferConverter` | `ObjectToStringConverter`     |                                  | `ObjectToObjectConverter`,`IdToEntityConverter` |                                 |                     |||||||||
+| Enum              |                              |                                   |                                   |                                   | `EnumToStringConverter`       | `EnumToIntegerConverter`         |                               |                                 |                     |||||||||
+| Map               |                              |                                   |                                   |                                   |                               |                                  |                               |                                 | `MapToMapConverter` |||||||||
+| Boolean | | | | | | | | |  |||||||||
+| Properties | | | | | `PropertiesToStringConverter` | | | |  |||||||||
+| ZoneId | | | | |  | | | |  ||||||`ZoneIdToTimeZoneConverter`|||
+| ZonedDateTime | | | | |  | | | |  ||||||||`ZonedDateTimeToCalendarConverter`|
+
+### `StringToBooleanConverter`
+
+将`String`转换成`Boolean`。`true`、`on、yes、1` 转换成`Boolean.TRUE`。`false、off` 、no` 、`0 `转换成`Boolean.FALSE`。
+
+```java
+wrapper.setPropertyValue("good", "1");
+System.out.println("ConversionService, 设置bool值。 good：" + wrapper.getPropertyValue("good"));
+
+//-------
+//输出：
+//ConversionService, 设置bool值。 good：true
+```
+
+
+
+## 自定义`Converter`
+
+当Spring提供的转换器无法满足我们需要时，我们可以自定义转换逻辑。
+
+上面提到的`Converter`、`GenericConverter`和`ConverterFactory`三个接口都可以用来实现转换逻辑。该如何选择？
+
+- `Converter`：单值。从`S`->`T`。一对一转换。
+
+- `ConverterFactory`：从`S` -> `T extends R`。一对多转换。 
+
+- `GenericConverter` ：功能最复杂。实现多个类型对的转换。多对多转换。
+
+在自定义`PropertyEditor`示例中，我们实现了从`String`转换到`ClassRoom`的功能。在这里通过`Converter`来实现此功能。
+
+1. `StringToClassRoomConverter实现`String`转换到`ClassRoom`的功能。
+
+   ```java
+   public class StringToClassRoomConverter implements Converter<String, ClassRoom> {
+       @Override
+       public ClassRoom convert(String source) {
+           String[] strings = Optional.ofNullable(source).orElseGet(String::new).split(",");
+           ClassRoom classRoom = new ClassRoom();
+           classRoom.setName(strings[0]);
+           classRoom.setSize(Integer.parseInt(strings[1]));
+           return classRoom;
+       }
+   }
+   ```
+
+2. 将此`StringToClassRoomConverter`注册到我们使用的`ConversionService`中。
+
+   ```java
+   DefaultConversionService conversionService = new DefaultConversionService();
+   conversionService.addConverter(new StringToClassRoomConverter());
+   wrapper.setConversionService(conversionService);
+   ```
+
+3. `BeanWrapper`使用此`ConversionService`设置Bean属性。
+
+   ```java
+   wrapper.setPropertyValue("classRoom", "room4,4");
+   System.out.println("自定义Converter, 设置嵌套对象的属性 name：" + wrapper.getPropertyValue("classRoom.name"));
+   System.out.println("自定义Converter, 设置嵌套对象的属性 size：" + wrapper.getPropertyValue("classRoom.size"));
+   
+   //---------
+   //自定义Converter, 设置嵌套对象的属性 name：room4
+   //自定义Converter, 设置嵌套对象的属性 size：4
+   ```
+
+   从输出结果来看，已经成功转换成功。
 
 # `DirectFieldAccessor`

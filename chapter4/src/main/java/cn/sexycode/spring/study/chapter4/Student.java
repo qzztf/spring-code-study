@@ -8,6 +8,8 @@ public class Student {
 
     private String age;
 
+    private boolean good;
+
     private ClassRoom classRoom;
 
     public String getName() {
@@ -32,5 +34,13 @@ public class Student {
 
     public void setClassRoom(ClassRoom classRoom) {
         this.classRoom = classRoom;
+    }
+
+    public boolean isGood() {
+        return good;
+    }
+
+    public void setGood(boolean good) {
+        this.good = good;
     }
 }
