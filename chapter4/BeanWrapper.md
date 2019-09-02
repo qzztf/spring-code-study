@@ -425,7 +425,7 @@ wrapper.setPropertyValue("classRoom", "room3,3");
 
 ## `GenericConversionService`类
 
-基础转换服务实现，适用于大部分情况。直接实现`ConfigurableConversionService`接口，实现了注册与转换功能。
+基础转换服务实现，适用于大部分情况。直接实现`ConfigurableConversionService`接口，实现了注册与转换功能。在注册`Converter`、`ConverterFactory`时，会将其转换成`GenericConverter`。
 
 ## `DefaultConversionService`类
 
@@ -517,7 +517,7 @@ System.out.println("ConversionService, 设置bool值。 good：" + wrapper.getPr
    wrapper.setConversionService(conversionService);
    ```
 
-3. `BeanWrapper`使用此`ConversionService`设置Bean属性。
+3. `BeanWrapper`使用此`ConversionService`设置Bean属性。这里不一定用`BeanWrapper` 来操作，可以直接调用`ConversionService`来转换。
 
    ```java
    wrapper.setPropertyValue("classRoom", "room4,4");
@@ -530,5 +530,51 @@ System.out.println("ConversionService, 设置bool值。 good：" + wrapper.getPr
    ```
 
    从输出结果来看，已经成功转换成功。
+
+当我们想从一个类型转换成某些类型时，可以实现`ConverterFactory`接口，因为我们也不知道总共有哪些类型，不可能每个类型都写一个`ConverterFactory`。比如说从`String`转换成枚举类型，前端传枚举类型的字面值，转换成具体的枚举类型。Spring 内置了`StringToEnumConverterFactory`来实现此功能。直接调用Enum的静态方法`Enum.valueOf(this.enumType, source.trim())`来实现转换。同理还有`IntegerToEnumConverterFactory`通过枚举的序号来转换。
+
+当我们遇到容器型的转换需求时，因为容器内部保存的类型可能是多种多样的，比如说List里面既有String，也有int，我们要统一转成Long型。
+
+```java
+DefaultConversionService conversionService = new DefaultConversionService();
+List source = new ArrayList();
+source.add("1");
+source.add(2);
+//这里要注意初始化成内部类，才能正确获取泛型，不然不会转换。因为这个例子中，如果不写成内部类，源类型和目标类型其实是一致的，CollectionToCollectionConverter（这个转换器支持集合之间的转换） 内部不会去做转换。
+List<Long> longList = new ArrayList<>(){};
+for (Object s : source) {
+    System.out.println(s.getClass() + " , " + s);
+}
+List convert = conversionService.convert(source, longList.getClass());
+for (Object s : convert) {
+    System.out.println(s.getClass() + " , " + s);
+}
+
+//-----------------
+//不是内部类，不转换
+//class java.lang.String , 1
+//class java.lang.Integer , 2
+//class java.lang.String , 1
+//class java.lang.Integer , 2
+
+//-------------
+//正确转换
+//class java.lang.String , 1
+//class java.lang.Integer , 2
+//class java.lang.Long , 1
+//class java.lang.Long , 2
+```
+
+
+
+如果有多个`Converter`可以处理同一个转换需求，那么则看注意的先后顺序了，会取第一个符合条件的转换器。这里可以优化一下。
+
+# `Formatter`
+
+在前后端交互时，通常会遇到日期格式这样的问题，`Converter`虽然说也能解决问题，在转换时转换成正确的格式。但是这样无法灵活控制我们的格式，我们得把所有格式都写在我们的`Converter`里，换一种格式，又得改一次这个类。这时候`Formatter`接口出现了。
+
+先看一下`Formatter`类，从`Parser`和`Printer`接口继承而来，实现了`String` <-> `Object`转换的功能。
+
+![Formatter结构](BeanWrapper/Formatter结构.png)
 
 # `DirectFieldAccessor`
