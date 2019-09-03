@@ -621,7 +621,7 @@ Spring 内部提供了一些`Formatter`，会通过`DefaultFormattingConversionS
 
 ## 使用示例
 
-以日期为例，如果不用注解的话，我们需要手动注册一下`Formatter`。
+1. 以日期为例，如果不用注解的话，我们需要手动注册一下`Formatter`。
 
 ```java
 DefaultFormattingConversionService conversionService = new DefaultFormattingConversionService();
@@ -633,8 +633,6 @@ System.out.println(conversionService.convert(date, String.class));
 // 2019年9月3日
 ```
 
-
-
 `DateFormatter`还支持指定格式。可以通过构造函数传入。
 
 ```java
@@ -644,6 +642,31 @@ conversionService.addFormatter(new DateFormatter("yyyy-MM-dd"));
 // 2019-09-03
 ```
 
+2. 还是以日期为例，使用Spring提供的`@DateTimeFormat`注解。
 
+   先创建一个类，里面有个日期字段使用`@DateTimeFormat`注解。
+
+   ```java
+   class Question {
+       @DateTimeFormat(pattern = "yyyy-MM-dd")
+       private Date createTime;
+   ```
+
+   指定格式为`yyyy-MM-dd`，这里我们需要`BeanWrapper`来触发格式化的动作。
+
+   ```java
+   DefaultFormattingConversionService conversionService = new DefaultFormattingConversionService();
+   
+   Question question = new Question();
+   BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(question);
+   beanWrapper.setConversionService(conversionService);
+   beanWrapper.setPropertyValue("createTime", "2019-09-03");
+   System.out.println(question.getCreateTime());
+   
+   //-----------
+   // Tue Sep 03 00:00:00 CST 2019
+   ```
+
+   通过打印的信息，可以看到已经成功将字符串`parse`为`Date`。
 
 # `DirectFieldAccessor`
