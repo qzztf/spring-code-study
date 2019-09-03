@@ -569,12 +569,81 @@ for (Object s : convert) {
 
 如果有多个`Converter`可以处理同一个转换需求，那么则看注意的先后顺序了，会取第一个符合条件的转换器。这里可以优化一下。
 
-# `Formatter`
+## `Formatter`
 
-在前后端交互时，通常会遇到日期格式这样的问题，`Converter`虽然说也能解决问题，在转换时转换成正确的格式。但是这样无法灵活控制我们的格式，我们得把所有格式都写在我们的`Converter`里，换一种格式，又得改一次这个类。这时候`Formatter`接口出现了。
+在前后端交互时，通常会遇到日期格式这样的问题，`Converter`虽然说也能解决这个问题，在转换时获取到正确的格式然后进行转换。但是这样无法灵活控制我们的格式，我们得把所有格式都写在我们的`Converter`里，换一种格式，又得改一次这个类。这时候`Formatter`接口出现了。
+
+`Formatter`接口位于`context`包中。
 
 先看一下`Formatter`类，从`Parser`和`Printer`接口继承而来，实现了`String` <-> `Object`转换的功能。
 
 ![Formatter结构](BeanWrapper/Formatter结构.png)
+
+
+
+## `FormatterRegistry`
+
+继承自`ConverterRegistry`接口，用来注册`Formatter`。
+
+- void addFormatter(Formatter<?> formatter)：向特定类型的字段添加`Formatter`。字段类型由`Formatter`的泛型提供。
+
+- void addFormatterForFieldType(Class<?> fieldType, Formatter<?> formatter)：向给定类型的字段添加`Formatter`。
+
+  在打印时，如果声明了`Formatter`的类型`T`，并且不能将`fieldType`赋值给`T`，则在打印字段值的任务委托给`Formatter`之前，将尝试强制转换为`T`。在解析时，如果`Formatter`返回的已解析对象不能分配给运行时字段类型，则在返回已解析字段值之前，将尝试强制转换为`fieldType`。例如，`DateFormatter`声明的泛型为`Date`，如果这里的`fieldType`为`DateTime`（假设存在），如果`DateTime`可以用`Date`变量接收，则意味着可以分配给`Date`，也就不需要转换。否则则需要转换为`Date`类型。具体能否分配，可以查看该方法：`org.springframework.core.convert.TypeDescriptor#isAssignableTo`。
+
+- void addFormatterForFieldType(Class<?> fieldType, Printer<?> printer, Parser<?> parser)：添加`Printer`/`Parser`对来格式化特定类型的字段，formatter 将委托给指定的`Printer`进行打印，并委托指定的`Parser`进行解析。
+
+  在打印时，如果声明了`Printer`的类型`T`，并且`fieldType`不能赋值给`T`，则在委托`Printer`打印字段值之前，将尝试转换化类型`T`。在解析时，如果`Parser`返回的对象不能分配给`fieldType`，则在返回解析后的字段值之前，将尝试转换为`fieldType`。这个方法与上一个方法的区别就是将`Formatter`拆开。
+
+- void addFormatterForFieldAnnotation(AnnotationFormatterFactory<? extends Annotation> annotationFormatterFactory)：为格式化注解标注的字段添加`Formatter`。此方法与上述方法的区别是不再以类型作为转换的依据了，而是根据注解来转换。比如某个字段上使用了`DateTimeFormat`注解，那会调用对应的`Formatter`。
+
+## `FormattingConversionService`
+
+`FormattingConversionService`类是Spring提供的支持`Formatter`接口的实现类，继承自`GenericConversionService`类，实现了`FormatterRegistry`和`EmbeddedValueResolverAware`接口，在`GenericConversionService`类的基础上增加了注册`Formatter`的功能。`EmbeddedValueResolverAware`接口用来解决字符串占位符、国际化等问题。注册`Formatter`时，会将`Formatter`转换成`GenericConverter`，调用此`GenericConverter`的`convert`方法时，将会调用`Formatter`的`print`或`parse`方法，由此可以看出我们需要格式化时，还是调用`FormattingConversionService`的`convert`方法即可。
+
+## `DefaultFormattingConversionService`
+
+Spring 内部提供了一些`Formatter`，会通过`DefaultFormattingConversionService`注册，我们无不特殊要求，可以直接使用此类，再在此基础上注册我们自定义的`Formatter`。
+
+### Spring提供的`Formatter`
+
+| `Formatter`或`FormatterRegistrar`              | `DefaultFormattingConversionService`是否注册 | 说明                                                         |
+| ---------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------ |
+| `NumberFormatAnnotationFormatterFactory`       | Y                                            | 用于支持`@NumberFormat`注解                                  |
+| `CurrencyUnitFormatter`                        | JSR-354相关的jar包出现在classpath时注册      | `javax.money.CurrencyUnit`                                   |
+| `MonetaryAmountFormatter`                      | JSR-354相关的jar包出现在classpath时注册      | `javax.money.MonetaryAmount`                                 |
+| `Jsr354NumberFormatAnnotationFormatterFactory` | JSR-354相关的jar包出现在classpath时注册      | `@NumberFormat`注解                                          |
+| `DateTimeFormatterRegistrar`                   |                                              | 用来注册`JSR-310`新版日期和时间相关                          |
+| `JodaTimeFormatterRegistrar`                   |                                              | 如果使用了`Joda`包，则会注册相关的``                         |
+| `DateFormatterRegistrar`                       |                                              | 注册`@DateTimeFormat`注解的`AnnotationFormatterFactory`用于`Date`，`Calendar`，`Long`之间格式化以及`Date`，`Calendar`，`Long`之间的转换的`Converter`。默认不会注册用于直接转换的`DateFormatter`，不需要`@DateTimeFormat`注解，我们可以手动注册。 |
+
+
+
+## 使用示例
+
+以日期为例，如果不用注解的话，我们需要手动注册一下`Formatter`。
+
+```java
+DefaultFormattingConversionService conversionService = new DefaultFormattingConversionService();
+conversionService.addFormatter(new DateFormatter());
+Date date = new Date();
+System.out.println(conversionService.convert(date, String.class));
+
+//----------------
+// 2019年9月3日
+```
+
+
+
+`DateFormatter`还支持指定格式。可以通过构造函数传入。
+
+```java
+conversionService.addFormatter(new DateFormatter("yyyy-MM-dd"));
+
+//-------
+// 2019-09-03
+```
+
+
 
 # `DirectFieldAccessor`
