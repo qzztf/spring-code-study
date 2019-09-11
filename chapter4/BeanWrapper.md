@@ -415,7 +415,7 @@ wrapper.setPropertyValue("classRoom", "room3,3");
 
 用来注册`Converter`。
 
-## ConversionService 组件结构
+## `ConversionService`组件结构
 
 ![ConversionService结构](BeanWrapper/ConversionService结构.png)
 
@@ -669,10 +669,17 @@ conversionService.addFormatter(new DateFormatter("yyyy-MM-dd"));
    // 将时间格式化 字符串
    System.out.println("注解格式化日期：" + conversionService.convert(question.getCreateTime(), new TypeDescriptor(question.getClass().getDeclaredField("createTime")), TypeDescriptor.valueOf(String.class)));
    
-      //---------
-      //注解格式化日期：2019-09-03
+   //---------
+   //注解格式化日期：2019-09-03
    ```
+   
+   通过打印的信息，可以看到已经成功将字符串`parse`为`Date`，并将日期`format`为字符串。由于注解在字段上，我们只提供了`Date`的值，所以还需要通过`TypeDescriptor`将字段的附加信息传递进去，这样才能正确识别到字段上的注解。
 
-通过打印的信息，可以看到已经成功将字符串`parse`为`Date`，并将日期`format`为字符串。由于注解在字段上，我们只提供了`Date`的值，所以还需要通过`TypeDescriptor`将字段的附加信息传递进去，这样才能正确识别到字段上的注解。
+## 自定义`Formatter`
+
+
+
+## `Converter`的注册与获取
+
 
 # `DirectFieldAccessor`
