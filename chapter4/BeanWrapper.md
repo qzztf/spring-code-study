@@ -677,9 +677,10 @@ conversionService.addFormatter(new DateFormatter("yyyy-MM-dd"));
 
 ## 自定义`Formatter`
 
+除了Spring 给我们提供的这些`Formatter`之外，我们还可以自定义来实现特殊功能。
 
+比如前台传过来一段字符串，我们根据正则表达式截取部分字符。
 
-## `Converter`的注册与获取
-
+## `Converter `的注册与获取
 
 # `DirectFieldAccessor`
