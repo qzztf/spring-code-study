@@ -17,7 +17,7 @@ public class StringFormatAnnotationFormatterFactory implements AnnotationFormatt
      */
     @Override
     public Set<Class<?>> getFieldTypes() {
-        return Set.of(List.class);
+        return Set.of(List.class, String.class);
     }
 
     /**
@@ -47,7 +47,7 @@ public class StringFormatAnnotationFormatterFactory implements AnnotationFormatt
      */
     @Override
     public Parser<?> getParser(StringFormat annotation, Class<?> fieldType) {
-        return null;
+        return new StringFormatFormatter(annotation.pattern());
     }
 
     private static class StringFormatFormatter implements Formatter<Collection> {
@@ -69,7 +69,7 @@ public class StringFormatAnnotationFormatterFactory implements AnnotationFormatt
         public Collection parse(String text, Locale locale) throws ParseException {
             List<String> list = new ArrayList<>();
             Matcher matcher = pattern.matcher(text);
-            if (matcher.find()) {
+            while (matcher.find()) {
                 list.add(matcher.group());
             }
             return list;
