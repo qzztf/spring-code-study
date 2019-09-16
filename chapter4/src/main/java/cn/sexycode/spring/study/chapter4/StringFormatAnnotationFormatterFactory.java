@@ -1,6 +1,5 @@
 package cn.sexycode.spring.study.chapter4;
 
-import org.springframework.core.type.filter.RegexPatternTypeFilter;
 import org.springframework.format.AnnotationFormatterFactory;
 import org.springframework.format.Formatter;
 import org.springframework.format.Parser;
@@ -85,7 +84,7 @@ public class StringFormatAnnotationFormatterFactory implements AnnotationFormatt
          */
         @Override
         public String print(Collection object, Locale locale) {
-            return null;
+            return object.toString();
         }
     }
 }

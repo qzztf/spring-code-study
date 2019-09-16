@@ -1,17 +1,12 @@
 package cn.sexycode.spring.study.chapter4;
 
-import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.core.convert.TypeDescriptor;
-import org.springframework.format.datetime.DateFormatter;
 import org.springframework.format.support.DefaultFormattingConversionService;
-
-import java.util.Date;
 
 /**
  * @author qzz
  */
-public class CustomerFormatterDemo {
+public class CustomFormatterDemo {
     public static void main(String[] args) throws NoSuchFieldException {
         DefaultFormattingConversionService conversionService = new DefaultFormattingConversionService();
         conversionService.addFormatterForFieldAnnotation(new StringFormatAnnotationFormatterFactory());
