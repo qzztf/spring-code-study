@@ -819,7 +819,7 @@ public class CustomFormatterDemo {
 
 ### `GenericConversionService`
 
-`GenericConversionService`类实现了`ConverterRegistry`。现在看一下具体的注册过程。
+`GenericConversionService`类实现了`ConverterRegistry`接口。现在看一下具体的注册过程。
 
 1. void addConverter(Converter<?, ?> converter)：
 
@@ -832,15 +832,14 @@ public class CustomFormatterDemo {
        typeInfo = getRequiredTypeInfo(((DecoratingProxy) converter).getDecoratedClass(), Converter.class);
    }
    if (typeInfo == null) {
-       throw new IllegalArgumentException("Unable to determine source type <S> and target type <T> for your " +
-                                          "Converter [" + converter.getClass().getName() + "]; does the class parameterize those types?");
+       throw new IllegalArgumentException("Unable to determine source type <S> and target type <T> for your " + "Converter [" + converter.getClass().getName() + "]; does the class parameterize those types?");
    }
    addConverter(new ConverterAdapter(converter, typeInfo[0], typeInfo[1]));
    ```
-
+   
 2. <S, T> void addConverter(Class<S> sourceType, Class<T> targetType, Converter<? super S, ? extends T> converter)：
 
-   由于指定了转换类型，则直接注册就完事了。
+   由于指定了转换类型，直接注册就完事了。
 
    ```java
    addConverter(new ConverterAdapter(converter, ResolvableType.forClass(sourceType), ResolvableType.forClass(targetType)));
@@ -858,12 +857,13 @@ public class CustomFormatterDemo {
    if (typeInfo == null) {
        throw new IllegalArgumentException("Unable to determine source type <S> and target type <T> for your " + "ConverterFactory [" + factory.getClass().getName() + "]; does the class parameterize those types?");
    }
-   addConverter(new ConverterFactoryAdapter(factory,
-                                            new ConvertiblePair(typeInfo[0].toClass(), typeInfo[1].toClass())));
+   addConverter(new ConverterFactoryAdapter(factory,  new ConvertiblePair(typeInfo[0].toClass(), typeInfo[1].toClass())));
    ```
-
+   
 4. void addConverter(GenericConverter converter)：
 
+  上面几种注册方式最终都会调用此方法，也就是说会将`Converter`、`ConverterFactory`转换成`GenericConverter `。
+  
    
 
 # `DirectFieldAccessor`
