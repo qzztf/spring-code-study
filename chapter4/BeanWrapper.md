@@ -795,10 +795,75 @@ public class CustomFormatterDemo {
 // 自定义注解格式化：[43, 344]
 ```
 
-从打印出来的结果可以看出来已经正确将字符串转换成了`List`。不过`List`中都是字符串，我们还可以将字符串转换成数字类型。需要我们来主动转换吗？其实是不需要的，Spring 已经帮我们考虑到了此种情景，可以自动将`List`中的元素也转换成对应的类型。还记得`CollectionToCollectionConverter`这个转换器吗？
-
-
+从打印出来的结果可以看出来已经正确将字符串转换成了`List`。不过`List`中都是字符串，我们还可以将字符串转换成数字类型。需要我们来主动转换吗？其实是不需要的，Spring 已经帮我们考虑到了此种情景，可以自动将`List`中的元素也转换成对应的类型。还记得`CollectionToCollectionConverter`这个转换器吗？不过有个细节要注意：**我们的`Formatter`返回的结果不能是`ArrayList`， 这样会丢失泛型，不能正确转换，所以我们可以返回`ArrayList`的子类`List<String> list = new ArrayList<>(){};`， 这样会保留泛型，会调用后续的`Converter`**。
 
 ## `Converter `的注册与获取
+
+主要通过`ConverterRegistry`和`FormatterRegistry`来注册以及移除`Converter`。
+
+### `ConverterRegistry`
+
+#### 方法
+
+1. void addConverter(Converter<?, ?> converter)：注册简单的`Converter`，转换类型从`Converter`的泛型中获取。
+
+2. <S, T> void addConverter(Class<S> sourceType, Class<T> targetType, Converter<? super S, ? extends T> converter)： 注册普通转换器，并且明确指定可转换类型。
+
+   可以针对多个不同转换类型的情况重用`Converter`，而不必为每个对创建`Converter`类。指定的源类型是`Converter`定义的类型的子类型，目标类型是`Converter`定义的类型的父类型。为什么要如此定义？拿Spring提供的`ObjectToStringConverter`为例，该`Converter`定义的转换类型为`Object` -> `String`，调用`Object.toString()`方法，只要是`Object`的子类，都可以调用此方法转换成`String`，因为`toString()`是共有的方法。同理，目标类型指定的类型需要是我定义的父类型，这样转换出来的一定是需要的类型。
+
+3. void addConverter(GenericConverter converter)：注册`GenericConverter `。
+
+4. void addConverterFactory(ConverterFactory<?, ?> factory)：注册`ConverterFactory`。
+
+5. void removeConvertible(Class<?> sourceType, Class<?> targetType)：移除`sourceType`到`targetType`的转换功能。
+
+### `GenericConversionService`
+
+`GenericConversionService`类实现了`ConverterRegistry`。现在看一下具体的注册过程。
+
+1. void addConverter(Converter<?, ?> converter)：
+
+   因为没有指定转换类型，所以只能从`Converter`的泛型中获取转换类型，如果获取不到，则会抛出异常。获取到之后，则会创建`ConverterAdapter`实例，通过`void addConverter(GenericConverter converter)`方法进行注册。
+
+   ```java
+   ResolvableType[] typeInfo = getRequiredTypeInfo(converter.getClass(), Converter.class);
+   //如果是代理对象，还需要从代理类中获取
+   if (typeInfo == null && converter instanceof DecoratingProxy) {
+       typeInfo = getRequiredTypeInfo(((DecoratingProxy) converter).getDecoratedClass(), Converter.class);
+   }
+   if (typeInfo == null) {
+       throw new IllegalArgumentException("Unable to determine source type <S> and target type <T> for your " +
+                                          "Converter [" + converter.getClass().getName() + "]; does the class parameterize those types?");
+   }
+   addConverter(new ConverterAdapter(converter, typeInfo[0], typeInfo[1]));
+   ```
+
+2. <S, T> void addConverter(Class<S> sourceType, Class<T> targetType, Converter<? super S, ? extends T> converter)：
+
+   由于指定了转换类型，则直接注册就完事了。
+
+   ```java
+   addConverter(new ConverterAdapter(converter, ResolvableType.forClass(sourceType), ResolvableType.forClass(targetType)));
+   ```
+
+3. void addConverterFactory(ConverterFactory<?, ?> factory)：
+
+   也是先从泛型中推断出转换的类型，然后创建`ConverterFactoryAdapter`实例进行注册。
+
+   ```java
+   ResolvableType[] typeInfo = getRequiredTypeInfo(factory.getClass(), ConverterFactory.class);
+   if (typeInfo == null && factory instanceof DecoratingProxy) {
+       typeInfo = getRequiredTypeInfo(((DecoratingProxy) factory).getDecoratedClass(), ConverterFactory.class);
+   }
+   if (typeInfo == null) {
+       throw new IllegalArgumentException("Unable to determine source type <S> and target type <T> for your " + "ConverterFactory [" + factory.getClass().getName() + "]; does the class parameterize those types?");
+   }
+   addConverter(new ConverterFactoryAdapter(factory,
+                                            new ConvertiblePair(typeInfo[0].toClass(), typeInfo[1].toClass())));
+   ```
+
+4. void addConverter(GenericConverter converter)：
+
+   
 
 # `DirectFieldAccessor`

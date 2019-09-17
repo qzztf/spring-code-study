@@ -49,7 +49,7 @@ public class StringFormatAnnotationFormatterFactory implements AnnotationFormatt
         return new StringFormatFormatter(annotation.pattern());
     }
 
-    private static class StringFormatFormatter implements Formatter<Collection> {
+    private static class StringFormatFormatter implements Formatter<Collection<String>> {
         private Pattern pattern;
          StringFormatFormatter(String pattern) {
             this.pattern = Pattern.compile(pattern);
@@ -65,8 +65,8 @@ public class StringFormatAnnotationFormatterFactory implements AnnotationFormatt
          * @throws IllegalArgumentException when a parse exception occurs
          */
         @Override
-        public Collection parse(String text, Locale locale) throws ParseException {
-            List<String> list = new ArrayList<>();
+        public Collection<String> parse(String text, Locale locale) throws ParseException {
+            List<String> list = new ArrayList<>(){};
             Matcher matcher = pattern.matcher(text);
             while (matcher.find()) {
                 list.add(matcher.group());
@@ -83,7 +83,7 @@ public class StringFormatAnnotationFormatterFactory implements AnnotationFormatt
          * @return the printed text string
          */
         @Override
-        public String print(Collection object, Locale locale) {
+        public String print(Collection<String> object, Locale locale) {
             return object.toString();
         }
     }
