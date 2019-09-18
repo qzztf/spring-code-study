@@ -862,8 +862,59 @@ public class CustomFormatterDemo {
    
 4. void addConverter(GenericConverter converter)：
 
-  上面几种注册方式最终都会调用此方法，也就是说会将`Converter`、`ConverterFactory`转换成`GenericConverter `。
-  
-   
+  上面几种注册方式最终都会调用此方法，也就是说会将`Converter`、`ConverterFactory`转换成`GenericConverter `。这里使用到了`适配器模式`。
+
+   ```java
+//添加到内部容器中去
+this.converters.add(converter);
+//使缓存失效
+invalidateCache();
+   ```
+
+### `ConverterAdapter`适配器
+
+实现了`ConditionalGenericConverter`接口，将`Converter`转换成`GenericConverter`。在`matches`方法去判断转换类型是否匹配。转换时直接调用内部转换器的转换方法。
+
+### `ConverterFactoryAdapter`适配器
+
+实现了`ConditionalGenericConverter`接口，将`ConverterFactoryAdapter`转换成`GenericConverter`。在`matches`方法去判断转换类型是否匹配。转换时直接调用内部`ConverterFactory`获取的转换器的转换方法。
+
+### `ConvertiblePair`
+
+该类保存了转换的源类型和目标类型，并重写了`equals`和`hashCode`方法用于比较。`GenericConverter`返回`ConvertiblePair`集合表示所支持的转换类型。
+
+### `Converters`
+
+此类用来管理所有注册的`Converter`。提供添加和删除的功能。添加时获取到此`Converter`支持的类型，如果为空并且是`ConditionalConverter`，则代表它支持所有类型。得到支持的类型后，遍历每个类型，获取到已经注册的`ConvertersForPair`，该类维护转换类型到`Converter`之间的关系，而且是一对多的关系，也就是说同一种转换类型，会存在多个`Converter`。拿到`ConvertersForPair`后，将该`Converter`添加进去，后添加的会在前面，获取时符合条件时会优先返回。
+
+```java
+public void add(GenericConverter converter) {
+    Set<ConvertiblePair> convertibleTypes = converter.getConvertibleTypes();
+    if (convertibleTypes == null) {
+        Assert.state(converter instanceof ConditionalConverter,
+                     "Only conditional converters may return null convertible types");
+        this.globalConverters.add(converter);
+    }
+    else {
+        for (ConvertiblePair convertiblePair : convertibleTypes) {
+            ConvertersForPair convertersForPair = getMatchableConverters(convertiblePair);
+            //后添加的在前面
+            convertersForPair.add(converter);
+        }
+    }
+}
+```
+
+### `FormatterRegistry`注册`	Formatter`
+
+继承自`ConverterRegistry`接口，增加了注册`Formmater`的方法。
+
+### `FormattingConversionService`
+
+该类继承自`GenericConversionService`类，并实现了`FormatterRegistry`接口。在添加`Formatter`时会将其转换为`PrinterConverter`，`ParserConverter`。在添加`AnnotationFormatterFactory`转换为`AnnotationPrinterConverter`和`AnnotationParserConverter`。可以想象到这四个类也是实现了`Converter`，最终通过`convert`方法来调用`parse`和`print`方法。
+
+### 获取`Converter`
+
+在`GenericConversionService`的转换过程中，来了一个转换类型，需要获取到对应的`Converter`。在`Converters`的`find`方法中先拿到源类型和目标类型继承的所有类型，比如说源类型是`String`，那么获取到的就是`String`、`Serializable`、`Comparable`、`CharSequence`和`Object`，如果是枚举还将获取到`Enum`。找到之后一一进行组合去获取`Converter`，比如目标类型是`Integer`，则第一次组合就是`String`-`Integer`。
 
 # `DirectFieldAccessor`
