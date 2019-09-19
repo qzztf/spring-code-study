@@ -10,7 +10,7 @@ Spring底层操作Java Bean的核心接口。
 
 此接口还支持嵌套属性，允许将子属性上的属性设置为无限深度。
 
-`BeanWrapper`的`extractOldValueForEditor`默认值是`false`，以避免`getter`方法调用造成的副作用。将此选项变为`true`，以便向自定义编辑器暴露当前属性值。
+`BeanWrapper`的`extractOldValueForEditor`默认值是`false`，可以避免`getter`方法调用时造成的副作用。将此选项设置为`true`，可以向自定义编辑器暴露当前属性值。
 
 可以看出`BeanWrapper`是操作Java Bean 的强大利器。
 
@@ -915,6 +915,16 @@ public void add(GenericConverter converter) {
 
 ### 获取`Converter`
 
-在`GenericConversionService`的转换过程中，来了一个转换类型，需要获取到对应的`Converter`。在`Converters`的`find`方法中先拿到源类型和目标类型继承的所有类型，比如说源类型是`String`，那么获取到的就是`String`、`Serializable`、`Comparable`、`CharSequence`和`Object`，如果是枚举还将获取到`Enum`。找到之后一一进行组合去获取`Converter`，比如目标类型是`Integer`，则第一次组合就是`String`-`Integer`。
+在`GenericConversionService`的转换过程中，来了一个转换类型，需要获取到对应的`Converter`。在`Converters`的`find`方法中先拿到源类型和目标类型继承的所有类型，比如说源类型是`String`，那么获取到的就是`String`、`Serializable`、`Comparable`、`CharSequence`和`Object`，如果是枚举还将获取到`Enum`。找到之后一一进行组合去获取`Converter`，比如目标类型是`Integer`，则第一次组合就是`String`-`Integer`。这么做的目的是支持一个`Converter`可以转换多个类型，比如`String`-> `Enum`，通过字面量转换成枚举，如果没有这个机制，那么我们就得为每个枚举都定义一个`Converter`，但是有了这个机制，我们就可以支持所有的枚举类型。其实就是通过这个机制来支持`ConverterFactory`。这个机制可以保证子类可以通过父类转换器进行转换（这种转换方式需要注意父类无法感知子类的特殊属性），但不能保证父类可以通过子类转换器，这里就需要通过`<S, T> void addConverter(Class<S> sourceType, Class<T> targetType, Converter<? super S, ? extends T> converter)`方法注册。
 
 # `DirectFieldAccessor`
+
+通过反射直接访问Bean实例的字段。可以直接绑定到字段，而不需要通过JavaBean set方法。
+
+从Spring 4.2开始，绝大多数`BeanWrapper`特性已经被合并到`AbstractPropertyAccessor`中，这意味着这个类也支持属性遍历以及集合和Map 访问。
+
+`DirectFieldAccessor`的`extractOldValueForEditor`属性默认为`true`，因此在读取字段的时候没有该
+
+# `PropertyAccessorFactory`
+
+可以通过此类来获取`BeanWrapper`和`DirectFieldAccessor`。
