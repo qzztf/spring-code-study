@@ -10,7 +10,7 @@ Spring底层操作Java Bean的核心接口。
 
 此接口还支持嵌套属性，允许将子属性上的属性设置为无限深度。
 
-`BeanWrapper`的`extractOldValueForEditor`默认值是`false`，可以避免`getter`方法调用时造成的副作用。将此选项设置为`true`，可以向自定义编辑器暴露当前属性值。
+`BeanWrapper`的`extractOldValueForEditor`默认值是`false`，可以避免调用 `getter`方法。将此选项设置为`true`，可以向自定义编辑器暴露当前属性值。
 
 可以看出`BeanWrapper`是操作Java Bean 的强大利器。
 
@@ -923,7 +923,7 @@ public void add(GenericConverter converter) {
 
 从Spring 4.2开始，绝大多数`BeanWrapper`特性已经被合并到`AbstractPropertyAccessor`中，这意味着这个类也支持属性遍历以及集合和Map 访问。
 
-`DirectFieldAccessor`的`extractOldValueForEditor`属性默认为`true`，因此在读取字段的时候没有该
+`DirectFieldAccessor`的`extractOldValueForEditor`属性默认为`true`，因为在读取字段的时候是直接通过反射去拿到的字段值，不需要调用`getter`方法。
 
 # `PropertyAccessorFactory`
 
