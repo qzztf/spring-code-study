@@ -25,8 +25,11 @@ public class ConversionServiceDemo {
         }*/
 
         DefaultConversionService conversionService = new DefaultConversionService();
-        conversionService.addConverter(new StringToQuestionConverter());
-        System.out.println(conversionService.convert("1", SubQuestion.class));
-
+        conversionService.removeConvertible(String.class, Number.class);
+//        conversionService.addConverter(new StringToQuestionConverter());
+//        System.out.println(conversionService.convert("1", SubQuestion.class));
+        conversionService.addConverter(new StringToIntegerConverter());
+        conversionService.addConverter(String.class, Number.class, new StringToIntegerConverter());
+        System.out.println(conversionService.convert("1", Number.class));
     }
 }
