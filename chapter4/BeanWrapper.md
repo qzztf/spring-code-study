@@ -915,7 +915,28 @@ public void add(GenericConverter converter) {
 
 ### 获取`Converter`
 
-在`GenericConversionService`的转换过程中，来了一个转换类型，需要获取到对应的`Converter`。在`Converters`的`find`方法中先拿到源类型和目标类型继承的所有类型，比如说源类型是`String`，那么获取到的就是`String`、`Serializable`、`Comparable`、`CharSequence`和`Object`，如果是枚举还将获取到`Enum`。找到之后一一进行组合去获取`Converter`，比如目标类型是`Integer`，则第一次组合就是`String`-`Integer`。这么做的目的是支持一个`Converter`可以转换多个类型，比如`String`-> `Enum`，通过字面量转换成枚举，如果没有这个机制，那么我们就得为每个枚举都定义一个`Converter`，但是有了这个机制，我们就可以支持所有的枚举类型。其实就是通过这个机制来支持`ConverterFactory`。这个机制可以保证子类可以通过父类转换器进行转换（这种转换方式需要注意父类无法感知子类的特殊属性），但不能保证父类可以通过子类转换器，这里就需要通过`<S, T> void addConverter(Class<S> sourceType, Class<T> targetType, Converter<? super S, ? extends T> converter)`方法注册。
+在`GenericConversionService`的转换过程中，来了一个转换类型，需要获取到对应的`Converter`。在`Converters`的`find`方法中先拿到源类型和目标类型继承的所有类型（包括接口），比如说源类型是`String`，那么获取到的就是`String`、`Serializable`、`Comparable`、`CharSequence`和`Object`，如果是枚举还将获取到`Enum`。找到之后一一进行组合去获取`Converter`，比如目标类型是`Integer`，则第一次组合就是`String`->`Integer`，如果找到了支持`String`->`Integer`的`Converter`，则会返回这个。这么做的目的是支持一个`Converter`可以转换多个类型，比如`String`-> `Enum`，通过字面量转换成枚举，如果没有这个机制，那么我们就得为每个枚举都定义一个`Converter`，但是有了这个机制，我们就可以支持所有的枚举类型。其实就是通过这个机制来支持`ConverterFactory`。这个机制可以保证子类可以通过父类转换器进行转换（这种转换方式需要注意父类无法感知子类的特殊属性），但不能保证父类可以通过子类转换器，如果可以保证`Converter`能正确转换，则可以通过`<S, T> void addConverter(Class<S> sourceType, Class<T> targetType, Converter<? super S, ? extends T> converter)`方法显式进行注册。比如我们只有`String`->`Integer`的`Converter`，但是我们需要将`String`转换为`Number`，则可以通过这个方法注册`addConverter(String.class, Number.class, StringToIntegerConverter)`。
+
+```java
+DefaultConversionService conversionService = new DefaultConversionService();
+//先去掉内置的转换器
+conversionService.removeConvertible(String.class, Number.class);
+//再注册上我们自己定义的 String -> Integer
+conversionService.addConverter(new StringToIntegerConverter());
+System.out.println(conversionService.convert("1", Number.class));
+
+//这种情况下是无法正确转换的。
+
+//但是通过这个方法显式注册之后可以正确转换
+conversionService.addConverter(String.class, Number.class, new StringToIntegerConverter());
+// 1
+```
+
+下面是查找的大致过程：
+
+![查找converter的图示](BeanWrapper/查找converter.png)
+
+
 
 # `DirectFieldAccessor`
 
