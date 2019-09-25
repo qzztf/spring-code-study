@@ -8,7 +8,7 @@ Spring 体系中有一些跟 Bean获取相关的接口，比如：`ObjectFactory
 
 ## ObjectFactory
 
-此接口定义了一个工厂，是一个函数式接口，可以在调用时返回一个对象实例(可能是共享的或独立的)。
+此接口定义了一个简单工厂，是一个函数式接口，可以在调用时返回一个对象实例(可能是共享的或独立的)。
 
 这个接口类似于`FactoryBean`，但是后者的实现类通常被定义为`BeanFactory`中的SPI实例，而该类的实现通常被作为API(通过注入)提供给其他bean。因此，getObject()方法具有不同的异常处理行为。
 
@@ -96,10 +96,8 @@ public interface ObjectProvider<T> extends ObjectFactory<T>, Iterable<T> {
 	}
 
 	/**
-	 * Consume an instance (possibly shared or independent) of the object
-	 * managed by this factory, if available.
-	 * @param dependencyConsumer a callback for processing the target object
-	 * if available (not called otherwise)
+	 * 如果存在该实例对象的话，则消费此对象
+	 * @param dependencyConsumer 在对象存在的情况下，用来消费此实例的消费者
 	 * @throws BeansException in case of creation errors
 	 * @since 5.0
 	 * @see #getIfAvailable()
@@ -112,10 +110,7 @@ public interface ObjectProvider<T> extends ObjectFactory<T>, Iterable<T> {
 	}
 
 	/**
-	 * Return an instance (possibly shared or independent) of the object
-	 * managed by this factory.
-	 * @return an instance of the bean, or {@code null} if not available or
-	 * not unique (i.e. multiple candidates found with none marked as primary)
+	 * 返回实例，如果没有或者不唯一的话（如有多个的情况下都没有标记为primary）则返回 null
 	 * @throws BeansException in case of creation errors
 	 * @see #getObject()
 	 */
@@ -123,13 +118,7 @@ public interface ObjectProvider<T> extends ObjectFactory<T>, Iterable<T> {
 	T getIfUnique() throws BeansException;
 
 	/**
-	 * Return an instance (possibly shared or independent) of the object
-	 * managed by this factory.
-	 * @param defaultSupplier a callback for supplying a default object
-	 * if no unique candidate is present in the factory
-	 * @return an instance of the bean, or the supplied default object
-	 * if no such bean is available or if it is not unique in the factory
-	 * (i.e. multiple candidates found with none marked as primary)
+	 * 返回实例，如果没有或者不唯一的话（如有多个的情况下都没有标记为primary）则返回提供的默认对象
 	 * @throws BeansException in case of creation errors
 	 * @since 5.0
 	 * @see #getIfUnique()
@@ -140,10 +129,8 @@ public interface ObjectProvider<T> extends ObjectFactory<T>, Iterable<T> {
 	}
 
 	/**
-	 * Consume an instance (possibly shared or independent) of the object
-	 * managed by this factory, if unique.
-	 * @param dependencyConsumer a callback for processing the target object
-	 * if unique (not called otherwise)
+	 * 如果唯一的话，则消费此对象
+	 * @param dependencyConsumer 如果对象唯一，则使用此消费者消费对象
 	 * @throws BeansException in case of creation errors
 	 * @since 5.0
 	 * @see #getIfAvailable()
@@ -156,8 +143,7 @@ public interface ObjectProvider<T> extends ObjectFactory<T>, Iterable<T> {
 	}
 
 	/**
-	 * Return an {@link Iterator} over all matching object instances,
-	 * without specific ordering guarantees (but typically in registration order).
+	 * 返回所有匹配对象实例的迭代器，不保证特定的顺序(但通常按注册的顺序)。
 	 * @since 5.1
 	 * @see #stream()
 	 */
@@ -167,8 +153,7 @@ public interface ObjectProvider<T> extends ObjectFactory<T>, Iterable<T> {
 	}
 
 	/**
-	 * Return a sequential {@link Stream} over all matching object instances,
-	 * without specific ordering guarantees (but typically in registration order).
+	 * 返回所有匹配对象实例上的顺序流，不保证特定的顺序(但通常按注册的顺序)。
 	 * @since 5.1
 	 * @see #iterator()
 	 * @see #orderedStream()
@@ -178,13 +163,8 @@ public interface ObjectProvider<T> extends ObjectFactory<T>, Iterable<T> {
 	}
 
 	/**
-	 * Return a sequential {@link Stream} over all matching object instances,
-	 * pre-ordered according to the factory's common order comparator.
-	 * <p>In a standard Spring application context, this will be ordered
-	 * according to {@link org.springframework.core.Ordered} conventions,
-	 * and in case of annotation-based configuration also considering the
-	 * {@link org.springframework.core.annotation.Order} annotation,
-	 * analogous to multi-element injection points of list/array type.
+	 * 返回所有匹配对象实例上的顺序流，根据工厂的公共顺序比较器预先排序。
+在标准Spring应用程序上下文中，这将根据 org.springframework.core.Ordered 的约定，如果是基于注解的配置，也要考虑 org.springframework.core.annotation.Order 注解，类似于列表/数组类型的多元素注入点。
 	 * @since 5.1
 	 * @see #stream()
 	 * @see org.springframework.core.OrderComparator
