@@ -5,6 +5,10 @@ import org.springframework.beans.PropertyValues;
 import org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor;
 
 public class InstantiationAwareBeanPostProcessorImpl implements InstantiationAwareBeanPostProcessor {
+    public InstantiationAwareBeanPostProcessorImpl() {
+        System.out.println("init InstantiationAwareBeanPostProcessorImpl");
+    }
+
     @Override
     public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) throws BeansException {
         return null;

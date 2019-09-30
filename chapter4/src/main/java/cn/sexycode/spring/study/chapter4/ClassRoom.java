@@ -1,6 +1,10 @@
 package cn.sexycode.spring.study.chapter4;
 
 public class ClassRoom {
+    public ClassRoom() {
+        System.out.println("init ClassRoom");
+    }
+
     private String name;
 
     private int size;
