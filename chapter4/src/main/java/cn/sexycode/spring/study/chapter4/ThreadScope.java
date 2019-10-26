@@ -1,13 +1,23 @@
 package cn.sexycode.spring.study.chapter4;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.config.DestructionAwareBeanPostProcessor;
 import org.springframework.beans.factory.config.Scope;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 
+import java.util.Optional;
 
+/**
+ * 线程级别的 Bean作用范围
+ */
 public class ThreadScope implements Scope {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ThreadScope.class);
+
+    public static final String SCOPE_NAME = "thread";
+
     /**
      * 用于保存线程变量
      */
@@ -27,7 +37,9 @@ public class ThreadScope implements Scope {
      */
     @Override
     public Object get(String name, ObjectFactory<?> objectFactory) {
-        return null;
+        Object o = Optional.ofNullable(threadLocal.get()).orElse(objectFactory.getObject());
+        threadLocal.set(o);
+        return o;
     }
 
     /**
@@ -49,7 +61,10 @@ public class ThreadScope implements Scope {
      */
     @Override
     public Object remove(String name) {
-        return null;
+        LOGGER.info("进入remove方法");
+        Object o = threadLocal.get();
+        threadLocal.remove();
+        return o;
     }
 
     /**
