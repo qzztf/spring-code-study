@@ -32,17 +32,17 @@ Spring 内置了`singleton`、`prototype`两种`Scope`，Bean 默认为`singleto
 
 3. void registerDestructionCallback(String name, Runnable callback)：注册一个回调函数，在范围内指定对象被销毁时执行(或者在整个范围被销毁时，如果该范围没有销毁单个对象，而只是全部终止)。
 
-   注意:这是一个可选操作。此方法将仅对具有实际销毁配置的作用域bean调用(dispose - bean、destroy-method、DestructionAwareBeanPostProcessor)。实现应该尽力在适当的时候执行给定的回调。如果底层运行时环境根本不支持这样的回调，则必须忽略回调并记录相应的警告。
+   注意:这是一个可选操作。此方法将仅对具有实际销毁配置的作用域bean调用(dispose - bean、destroy-method、DestructionAwareBeanPostProcessor)。实现类应该尽量在适当的时候执行给定的回调。如果底层运行时环境根本不支持这样的回调，则必须忽略回调并记录相应的警告。
 
    请注意，“销毁”指的是作为范围自身生命周期的一部分的对象的自动销毁，而不是指应用程序显式删除的单个作用域对象。如果一个作用域对象通过这个facade的remove(String)方法被删除，那么任何已注册的销毁回调也应该被删除，假设被删除的对象将被重用或手动销毁。
 
-4. Object resolveContextualObject(String key)：解析给定键的上下文对象(如果有的话)。例如:密钥“请求”的HttpServletRequest对象。
+4. Object resolveContextualObject(String key)：解析给定键的上下文对象(如果有的话)。例如: `request`对应的`HttpServletRequest`对象。
 
-5. String getConversationId()：返回当前底层范围的对话ID(如果有的话)。
+5. String getConversationId()：返回当前底层范围的会话ID(如果有的话)。
 
-   会话ID的确切含义取决于底层存储机制。对于会话范围的对象，会话ID通常等于(或源自)会话ID;对于位于整个会话中的自定义会话，当前会话的特定ID是合适的。
+   会话ID的确切含义取决于底层存储机制。对于`session`范围的对象，会话ID通常等于(或源自)session ID。
 
-   注意:这是一个可选操作。如果底层存储机制没有明显的ID候选，则在此方法的实现中返回null是完全有效的。
+   注意:这不是必须的。如果底层存储机制没有明显的ID时，则可以在此方法的实现中返回`null`。
 
 ## 自定义Scope
 
@@ -73,10 +73,6 @@ catch (IllegalStateException ex) {
                                     ex);
 }
 ```
-
-### `Scope`接口
-
-
 
 
 
