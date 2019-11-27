@@ -26,7 +26,7 @@ Spring 内置了`singleton`、`prototype`两种`Scope`，Bean 默认为`singleto
 
 2. Object remove(String name)：从`Scope`中删除该名称的对象。如果没有找到对象，则返回`null`；否则返回已删除的对象。
 
-   注意：实现类还应该删除指定对象已注册的销毁回调(如果有的话)。但是，在这种情况下，它不需要执行已注册的销毁回调，因为对象将被调用者销毁(在适当情况下)。
+   注意：实现类还应该删除指定对象已注册的销毁回调(如果有的话)。**实际执行回调并销毁移除的对象是调用者的责任**。
 
    注意：这是一个可选操作。如果实现类不支持显式删除对象，则可能引发`UnsupportedOperationException`。
 
@@ -36,7 +36,7 @@ Spring 内置了`singleton`、`prototype`两种`Scope`，Bean 默认为`singleto
 
    请注意，“销毁”指的是作为范围自身生命周期的一部分的对象的自动销毁，而不是指应用程序显式删除的单个作用域对象。如果一个作用域对象通过这个facade的remove(String)方法被删除，那么任何已注册的销毁回调也应该被删除，假设被删除的对象将被重用或手动销毁。
 
-4. Object resolveContextualObject(String key)：解析给定键的上下文对象(如果有的话)。例如: `request`对应的`HttpServletRequest`对象。
+4. Object resolveContextualObject(String key)：解析给定键的上下文对象(如果有的话)。如果此Scope支持多个上下文对象，则将每个对象与一个键值相关联，并返回与提供的*键*参数相对应的对象。否则，约定将返回*null*。例如: `request`对应的`HttpServletRequest`对象。
 
 5. String getConversationId()：返回当前底层范围的会话ID(如果有的话)。
 
@@ -47,6 +47,8 @@ Spring 内置了`singleton`、`prototype`两种`Scope`，Bean 默认为`singleto
 ## 自定义Scope
 
 在`AbstractBeanFactory`的`doGetBean`方法中，会判断是否是自定义`Scope`，并调用`get`方法。在我们的自定义Scope的get方法中，需要根据我们的场景来返回bean。比如我们要实现线程级别共享的bean，则需要判断当前线程是否存在，不存在就调用`ObjectFactory`的`getObject`方法创建bean，否则就返回存在的对象。`ObjectFactory`负责去创建bean，这个创建的过程跟其他的`Scope`一致，`Scope`要做的就是控制何时创建就OK了。
+
+同时，我们还必须**确保实现是线程安全的，**因为作用域可以同时由多个bean工厂使用。
 
 ```java
 String scopeName = mbd.getScope();
