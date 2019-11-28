@@ -1,5 +1,9 @@
 package cn.sexycode.spring.study.chapter4;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
@@ -7,8 +11,6 @@ import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.config.DestructionAwareBeanPostProcessor;
 import org.springframework.beans.factory.config.Scope;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
-
-import java.util.Optional;
 
 /**
  * 线程级别的 Bean作用范围
@@ -21,7 +23,8 @@ public class ThreadScope implements Scope {
     /**
      * 用于保存线程变量
      */
-    private ThreadLocal<Object> threadLocal = new ThreadLocal<>();
+    private ThreadLocal<Map<String, Object>> objectThreadLocal = new ThreadLocal<>();
+    private ThreadLocal<Map<String, Runnable>> callbackThreadLocal = new ThreadLocal<>();
     /**
      * Return the object with the given name from the underlying scope,
      * {@link ObjectFactory#getObject() creating it}
@@ -37,8 +40,10 @@ public class ThreadScope implements Scope {
      */
     @Override
     public Object get(String name, ObjectFactory<?> objectFactory) {
-        Object o = Optional.ofNullable(threadLocal.get()).orElse(objectFactory.getObject());
-        threadLocal.set(o);
+        Map<String, Object> map = Optional.ofNullable(objectThreadLocal.get()).orElse(new HashMap<>());
+        Object o = Optional.ofNullable(map.get(name)).orElse(objectFactory.getObject());
+        map.put(name,o);
+        objectThreadLocal.set(map);
         return o;
     }
 
@@ -62,8 +67,9 @@ public class ThreadScope implements Scope {
     @Override
     public Object remove(String name) {
         LOGGER.info("进入remove方法");
-        Object o = threadLocal.get();
-        threadLocal.remove();
+        Map<String, Object> map = objectThreadLocal.get();
+        Object o = map.remove(name);
+        callbackThreadLocal.get().remove(name);
         return o;
     }
 
@@ -99,7 +105,7 @@ public class ThreadScope implements Scope {
      */
     @Override
     public void registerDestructionCallback(String name, Runnable callback) {
-
+        callbackThreadLocal.get().put(name, callback);
     }
 
     /**

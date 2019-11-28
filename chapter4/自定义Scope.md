@@ -38,6 +38,8 @@ Spring 内置了`singleton`、`prototype`两种`Scope`，Bean 默认为`singleto
 
 4. Object resolveContextualObject(String key)：解析给定键的上下文对象(如果有的话)。如果此Scope支持多个上下文对象，则将每个对象与一个键值相关联，并返回与提供的*键*参数相对应的对象。否则，约定将返回*null*。例如: `request`对应的`HttpServletRequest`对象。
 
+   此方法提供了
+
 5. String getConversationId()：返回当前底层范围的会话ID(如果有的话)。
 
    会话ID的确切含义取决于底层存储机制。对于`session`范围的对象，会话ID通常等于(或源自)session ID。
@@ -48,7 +50,7 @@ Spring 内置了`singleton`、`prototype`两种`Scope`，Bean 默认为`singleto
 
 在`AbstractBeanFactory`的`doGetBean`方法中，会判断是否是自定义`Scope`，并调用`get`方法。在我们的自定义Scope的get方法中，需要根据我们的场景来返回bean。比如我们要实现线程级别共享的bean，则需要判断当前线程是否存在，不存在就调用`ObjectFactory`的`getObject`方法创建bean，否则就返回存在的对象。`ObjectFactory`负责去创建bean，这个创建的过程跟其他的`Scope`一致，`Scope`要做的就是控制何时创建就OK了。
 
-同时，我们还必须**确保实现是线程安全的，**因为作用域可以同时由多个bean工厂使用。
+同时，我们还必须**确保实现是线程安全的，**因为Scope可以同时由多个bean工厂使用。
 
 ```java
 String scopeName = mbd.getScope();
@@ -80,4 +82,79 @@ catch (IllegalStateException ex) {
 
 下面就以线程级别共享的Bean来创建自定义`ThreadScope`。
 
-### `ThreadScope`
+### 自定义Scope类：`ThreadScope`
+
+#### 实现Scope接口
+
+实现自定义Scope，我们需要实现`Scope`接口。
+
+```java
+public class ThreadScope implements Scope {
+    ...
+}
+```
+
+#### 管理Scope中的对象和回调
+
+实现自定义`Scope`类时要考虑的第一件事是如何存储和管理作用域对象和销毁回调。
+
+在此例中，使用`ThreadLocal`来保存对象。
+
+```java
+/**
+* 用于保存线程变量
+*/
+private ThreadLocal<Map<String, Object>> objectThreadLocal = new ThreadLocal<>();
+private ThreadLocal<Map<String, Runnable>> callbackThreadLocal = new ThreadLocal<>();
+```
+
+
+
+#### 实现`get`方法
+
+当Spring 容器遇到我们定义的`Scope`时，会从`Scope`中获取bean。因此我们需要实现`get`方法，当要获取的对象不在当前`Scope`中时，我们需要创建该对象并返回。
+
+在这个例子中，则是判断当前线程中是否有该对象。
+
+```java
+Map<String, Object> map = Optional.ofNullable(objectThreadLocal.get()).orElse(new HashMap<>());
+Object o = Optional.ofNullable(map.get(name)).orElse(objectFactory.getObject());
+map.put(name,o);
+objectThreadLocal.set(map);
+return o;
+```
+
+在`Scope`接口定义的五个方法中，**仅`get`方法才需要具有**所描述行为**的完整实现**。其他四个方法是可选的，如果它们不需要或不支持功能，则可能引发*UnsupportedOperationException*。
+
+#### 注册销毁回调
+
+我们还需要`registerDestructionCallback`方法。此方法提供了一个回调，当命名对象被销毁或者`Scope`本身被销毁时执行此回调。
+
+```java
+public void registerDestructionCallback(String name, Runnable callback) {
+    callbackThreadLocal.get().put(name, callback);
+}
+```
+
+#### 从Scope中删除对象
+
+接下来实现`remove`方法，该方法从Scope中删除命名对象，并删除其注册的销毁回调，并返回删除的对象：
+
+```java
+Map<String, Object> map = objectThreadLocal.get();
+Object o = map.remove(name);
+callbackThreadLocal.get().remove(name);
+return o;
+```
+
+请注意，Spring 并不会帮我们调用remove和执行回调方法，**实际执行回调并销毁移除的对象是调用者的责任**，因为Spring也不知道何时该remove掉对象。
+
+#### 获取会话ID
+
+现在实现`getConversationId`方法。如果Scope支持会话ID的概念，则可以在此处将其返回。否则，约定将返回*null*：
+
+此例中不需要会话ID，直接返回`null`。
+
+#### 解析上下文对象
+
+最后实现`resolveContextualObject`方法。如果范围支持多个上下文对象，则将每个对象与一个键值相关联，并返回与提供的*键*相对应的对象。否则，约定将返回*null*。
