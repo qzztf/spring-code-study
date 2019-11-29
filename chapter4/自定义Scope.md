@@ -38,7 +38,7 @@ Spring 内置了`singleton`、`prototype`两种`Scope`，Bean 默认为`singleto
 
 4. Object resolveContextualObject(String key)：解析给定键的上下文对象(如果有的话)。如果此Scope支持多个上下文对象，则将每个对象与一个键值相关联，并返回与提供的*键*参数相对应的对象。否则，约定将返回*null*。例如: `request`对应的`HttpServletRequest`对象。
 
-   此方法提供了
+   此方法提供了通过key来获取对象的功能。在Spring中有一个应用的地方，在自定义Scope的bean中通过`@Value`注解注入属性时，会通过此方法解析出对应的属性。
 
 5. String getConversationId()：返回当前底层范围的会话ID(如果有的话)。
 
@@ -157,4 +157,19 @@ return o;
 
 #### 解析上下文对象
 
-最后实现`resolveContextualObject`方法。如果范围支持多个上下文对象，则将每个对象与一个键值相关联，并返回与提供的*键*相对应的对象。否则，约定将返回*null*。
+最后实现`resolveContextualObject`方法。如果范围支持多个上下文对象，则将每个对象与一个键值相关联，并返回与提供的*键*相对应的对象。否则，约定将返回*null*。此例中不需要。
+
+### 注册自定义`Scope`
+
+#### 通过`ConfigurableBeanFactory`注册
+
+为了使Spring容器知道这个新作用域，可以**通过`ConfigurableBeanFactory`实例上的`registerScope`方法对其进行注册**。让我们看一下该方法的定义：
+
+```java
+void registerScope(String scopeName, Scope scope);
+```
+
+第一个参数`scopeName`用于指定唯一标识，第二个参数`scope`指定具体的实例。
+
+要拿到`ConfigurableBeanFactory`我们可以实现`BeanFactoryPostProcessor`:
+
