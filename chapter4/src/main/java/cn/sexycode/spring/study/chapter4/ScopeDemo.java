@@ -10,6 +10,7 @@ public class ScopeDemo {
         CustomScopeConfigurer customScopeConfigurer = new CustomScopeConfigurer();
         customScopeConfigurer.addScope(ThreadScope.SCOPE_NAME, new ThreadScope());
         context.addBeanFactoryPostProcessor(customScopeConfigurer);
+        context.addBeanFactoryPostProcessor(new ThreadScopeBeanFactoryPostProcessor());
         context.addBeanFactoryPostProcessor(new ScopeBeanDefinitionRegistryPostProcessor());
         context.refresh();
         context.getBean(ScopeBean.class);

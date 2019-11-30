@@ -161,8 +161,6 @@ return o;
 
 ### 注册自定义`Scope`
 
-#### 通过`ConfigurableBeanFactory`注册
-
 为了使Spring容器知道这个新作用域，可以**通过`ConfigurableBeanFactory`实例上的`registerScope`方法对其进行注册**。让我们看一下该方法的定义：
 
 ```java
@@ -172,4 +170,24 @@ void registerScope(String scopeName, Scope scope);
 第一个参数`scopeName`用于指定唯一标识，第二个参数`scope`指定具体的实例。
 
 要拿到`ConfigurableBeanFactory`我们可以实现`BeanFactoryPostProcessor`:
+
+```java
+public class ThreadScopeBeanFactoryPostProcessor implements BeanFactoryPostProcessor {
+ 
+    @Override
+    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+        beanFactory.registerScope(ThreadScope.SCOPE_NAME,new ThreadScope());
+    }
+}
+```
+
+将此*ThreadScopeBeanFactoryPostProcessor* 注册到Spring容器中:
+
+```java
+context.addBeanFactoryPostProcessor(new ThreadScopeBeanFactoryPostProcessor());
+```
+
+Spring 为我们提供了一个更方便的类：`org.springframework.beans.factory.config.CustomScopeConfigurer`。
+
+该类也实现了`BeanFactoryPostProcessor`接口，增加了两个方法：`setScopes(Map<String, Object> scopes)`和`addScope(String scopeName, Scope scope)`，可以更方便注册`Scope`。
 
