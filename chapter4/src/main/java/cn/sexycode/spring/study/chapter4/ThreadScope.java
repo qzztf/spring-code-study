@@ -19,7 +19,7 @@ public class ThreadScope implements Scope {
     private static final Logger LOGGER = LoggerFactory.getLogger(ThreadScope.class);
 
     public static final String SCOPE_NAME = "thread";
-
+    private Map<String, String> myPair = new HashMap<>();
     /**
      * 用于保存线程变量
      */
@@ -118,6 +118,9 @@ public class ThreadScope implements Scope {
      */
     @Override
     public Object resolveContextualObject(String key) {
+        if ("myKey".equals(key)) {
+            return myPair;
+        }
         return null;
     }
 

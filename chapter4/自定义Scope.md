@@ -159,7 +159,7 @@ return o;
 
 最后实现`resolveContextualObject`方法。如果范围支持多个上下文对象，则将每个对象与一个键值相关联，并返回与提供的*键*相对应的对象。否则，约定将返回*null*。此例中不需要。
 
-### 注册自定义`Scope`
+#### 注册自定义`Scope`
 
 为了使Spring容器知道这个新作用域，可以**通过`ConfigurableBeanFactory`实例上的`registerScope`方法对其进行注册**。让我们看一下该方法的定义：
 
@@ -191,3 +191,83 @@ Spring 为我们提供了一个更方便的类：`org.springframework.beans.fact
 
 该类也实现了`BeanFactoryPostProcessor`接口，增加了两个方法：`setScopes(Map<String, Object> scopes)`和`addScope(String scopeName, Scope scope)`，可以更方便注册`Scope`。
 
+同样也通过`context.addBeanFactoryPostProcessor()`方法将`CustomScopeConfigurer`注册到容器中。
+
+*这里手动注册的原因是可以更清楚的知道是如何使用这个`BeanFactoryPostProcessor`，在平时使用的过程中，只需要在xml中配置，或者使用注解`@Bean`配置即可*。
+
+#### 使用自定义`Scope`
+
+现在已经注册了自定义`Scope`，可以将其应用于我们的任何bean，通过使用`@Scope注解并指定我们的自定义Scope名称。
+
+##### 定义Bean
+
+让我们创建一个简单的*ScopeBean*类，稍后我们将声明这种类型的`ThreadScope`的bean
+
+```java
+public class ScopeBean {
+}
+```
+
+请注意，我们没有在此类上使用类级别的`@Component`和`@Scope`批注。
+
+##### 注册Bean
+
+注册Bean有很多种方式：xml，`@Bean`注解。这里展示另一种方式：实现`BeanDefinitionRegistryPostProcessor`接口。该接口继承自`BeanFactoryPostProcessor`，在该接口的基础上添加了`postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry)`方法，用来注册Bean。当你不想写配置文件或者配置类的时候，用编程的方式来注册Bean，也不愧是一种有效的方式。
+
+从这里我们也看到`BeanFactoryPostProcessor`接口是我们想要扩展Spring时的突破口。
+
+```java
+public class ScopeBeanDefinitionRegistryPostProcessor implements BeanDefinitionRegistryPostProcessor {
+    @Override
+    public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
+        BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(ScopeBean.class);
+        builder.setScope(ThreadScope.SCOPE_NAME);
+        registry.registerBeanDefinition("scopeBean", builder.getBeanDefinition());
+    }
+
+    @Override
+    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+    }
+}
+```
+
+在上面的代码中手动设置Scope为`ThreadScope`。
+
+#### 测试自定义`Scope`
+
+让我们编写一个测试类，通过加载*ApplicationContext*，并检索我们的`ThreadScope`的bean ：
+
+```java
+ConfigurableApplicationContext context = new ClassPathXmlApplicationContext();
+CustomScopeConfigurer customScopeConfigurer = new CustomScopeConfigurer();
+customScopeConfigurer.addScope(ThreadScope.SCOPE_NAME, new ThreadScope());
+//只通过一种方式来注册scope
+//context.addBeanFactoryPostProcessor(customScopeConfigurer);
+context.addBeanFactoryPostProcessor(new ThreadScopeBeanFactoryPostProcessor());
+//注册Bean
+context.addBeanFactoryPostProcessor(new ScopeBeanDefinitionRegistryPostProcessor());
+context.refresh();
+System.out.println("同一线程：" + Thread.currentThread().getName() +":" + context.getBean(ScopeBean.class));
+System.out.println("同一线程：" + Thread.currentThread().getName() +":" + context.getBean(ScopeBean.class));
+new Thread(() -> {
+    System.out.println("不同线程：" + Thread.currentThread().getName() +":" + context.getBean(ScopeBean.class));
+}).start();
+new Thread(() -> {
+    System.out.println("不同线程：" + Thread.currentThread().getName() +":" + context.getBean(ScopeBean.class));
+}).start();
+```
+
+分别打印在同一个线程和不同线程中获取的Bean：
+
+```
+同一线程：main:cn.sexycode.spring.study.chapter4.ScopeBean@e70f13a
+同一线程：main:cn.sexycode.spring.study.chapter4.ScopeBean@e70f13a
+不同线程：Thread-1:cn.sexycode.spring.study.chapter4.ScopeBean@c4c29bf
+不同线程：Thread-0:cn.sexycode.spring.study.chapter4.ScopeBean@3b41834c
+```
+
+从结果中可以看出，在同一线程中获取的Bean 是同一个，不同线程中获取的Bean不同。
+
+## 结论
+
+在本文中，我们了解了`Scope`是什么，以及如何在Spring中定义，注册和使用自定义`Scope`。
