@@ -35,7 +35,7 @@
 
     1. 如果 name 以 `&`开头，去掉`&`。
 
-    2. 处理别名。参数有可能是别名，得跟据别名找到实际注册的 Bean 名称。
+    2. 处理别名。参数有可能是别名，得根据别名找到实际注册的 Bean 名称。
 
        ``` java
        //先看一下别名的结构
@@ -75,7 +75,7 @@
 在Spring中Bean的名称才是唯一的标识，所以根据类型获取Bean，会先获取到所有该类型的Bean 的名称。
 
 1. 获取符合类型的Bean名称。如果有泛型的话，调用`doGetBeanNamesForType(ResolvableType type, boolean includeNonSingletons, boolean allowEagerInit)`方法；没有泛型则调用`getBeanNamesForType(@Nullable Class<?> type, boolean includeNonSingletons, boolean allowEagerInit)`方法。找到一个那就恭喜了。
-2. 如果获取的Bean名称多于1个，则需要根据优先权选择出一个名称，然后再跟据这个名称去获取Bean。
+2. 如果获取的Bean名称多于1个，则需要根据优先权选择出一个名称，然后再根据这个名称去获取Bean。
 
 ### Bean 实例化
 

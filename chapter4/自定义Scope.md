@@ -4,7 +4,7 @@
 
 Spring 内置了`singleton`、`prototype`两种`Scope`，Bean 默认为`singleton`，在Spring IOC 容器中，只会创建一个，并将其缓存起来。
 
-`prototype`作用域部署的bean，每一次请求（将其注入到另一个bean中，或者以程序的方式调用容器的`getBean()`方法）都会产生一个新的bean实例，相当与一个new的操作。对于`prototype`作用域的bean，有一点非常重要，那就是Spring不能对一个`prototype `bean的整个生命周期负责，容器在初始化、配置、装饰或者是装配完一个`prototype`实例后，将它交给客户端，随后就对该`prototype`实例不闻不问了。不管何种作用域，容器都会调用所有对象的初始化生命周期回调方法，而对`prototype`而言，任何配置好的析构回调方法都将不会被调用(`destory-method`不会被调用)，因为在注册为`DisposableBean`时将`prototype`排除在外。 清除`prototype`作用域的对象并释放任何`prototype` bean所持有的昂贵资源，都是客户端代码的职责。让Spring 容器释放被`singleton`作用域 bean 占用资源的一种可行方式是，通过使用 bean的后置处理器，该处理器持有要被清除的bean的引用。
+`prototype`作用域部署的bean，每一次请求（将其注入到另一个bean中，或者以程序的方式调用容器的`getBean()`方法）都会产生一个新的bean实例，相当于一个new的操作。对于`prototype`作用域的bean，有一点非常重要，那就是Spring不能对一个`prototype`bean的整个生命周期负责，容器在初始化、配置、装饰或者是装配完一个`prototype`实例后，将它交给客户端，随后就对该`prototype`实例不闻不问了。不管何种作用域，容器都会调用所有对象的初始化生命周期回调方法，而对`prototype`而言，任何配置好的析构回调方法都将不会被调用(`destory-method`不会被调用)，因为在注册为`DisposableBean`时将`prototype`排除在外。 清除`prototype`作用域的对象并释放任何`prototype` bean所持有的昂贵资源，都是客户端代码的职责。让Spring 容器释放被`singleton`作用域 bean 占用资源的一种可行方式是，通过使用 bean的后置处理器，该处理器持有要被清除的bean的引用。
 
 针对Web环境，Spring又增加了`session`、`request`、`global session`三种专用于Web应用程序上下文的`Scope`。
 
