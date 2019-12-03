@@ -34,7 +34,7 @@ Spring 内置了`singleton`、`prototype`两种`Scope`，Bean 默认为`singleto
 
    注意:这是一个可选操作。此方法将仅对具有实际销毁配置的作用域bean调用(dispose - bean、destroy-method、DestructionAwareBeanPostProcessor)。实现类应该尽量在适当的时候执行给定的回调。如果底层运行时环境根本不支持这样的回调，则必须忽略回调并记录相应的警告。
 
-   请注意，“销毁”指的是作为范围自身生命周期的一部分的对象的自动销毁，而不是指应用程序显式删除的单个作用域对象。如果一个作用域对象通过这个facade的remove(String)方法被删除，那么任何已注册的销毁回调也应该被删除，假设被删除的对象将被重用或手动销毁。
+   请注意，“销毁”指的是作为`Scope`自身生命周期的一部分的对象的自动销毁，而不是指应用程序显式删除的单个作用域对象。如果一个作用域对象通过`remove(String)`方法被删除，那么任何已注册的销毁回调也应该被删除，假设被删除的对象将被重用或手动销毁。
 
 4. Object resolveContextualObject(String key)：解析给定键的上下文对象(如果有的话)。如果此Scope支持多个上下文对象，则将每个对象与一个键值相关联，并返回与提供的*键*参数相对应的对象。否则，约定将返回*null*。例如: `request`对应的`HttpServletRequest`对象。
 
