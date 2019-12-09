@@ -3,7 +3,6 @@ package cn.sexycode.spring.study.chapter4;
 import org.springframework.beans.factory.config.CustomScopeConfigurer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class ScopeDemo {
     public static void main(String[] args) {

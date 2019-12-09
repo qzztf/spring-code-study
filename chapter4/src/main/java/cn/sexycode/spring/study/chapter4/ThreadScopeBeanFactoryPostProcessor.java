@@ -3,9 +3,6 @@ package cn.sexycode.spring.study.chapter4;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.beans.factory.support.BeanDefinitionBuilder;
-import org.springframework.beans.factory.support.BeanDefinitionRegistry;
-import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 
 public class ThreadScopeBeanFactoryPostProcessor implements BeanFactoryPostProcessor {
 

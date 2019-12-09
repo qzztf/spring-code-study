@@ -66,5 +66,9 @@ buildNumber.properties
 
 .idea/
 .project
+.classpath
+.DS_Store
 chapter1/chapter1.iml
 spring-code-study.iml
+.settings/
+.factorypath
