@@ -5,12 +5,12 @@
 1. `InstantiationAwareBeanPostProcessor`
 2. `Instance Supplier`
 3. 工厂方法
-4. 构造函数自动装配
-5. simple instantiation
+4. 构造函数
+5. 默认构造函数
 
 ##  InstantiationAwareBeanPostProcessor
 
-`InstantiationAwareBeanPostProcessor`接口在实例化Bean之前和实例化Bean之后设置属性或者自动装配之前调用。通常用于阴止特定殊目标bean的默认实例化行为，例如创建具有特定目标对象的代理(池目标、延迟初始化目标等)，或者实现额外的注入策略，如字段注入。
+`InstantiationAwareBeanPostProcessor`接口在实例化Bean之前和实例化Bean之后设置属性或者自动装配之前调用。通常用于阻止特定目标bean的默认实例化行为，例如创建具有特定目标对象的代理(池目标、延迟初始化目标等)，或者实现额外的注入策略，如字段注入。
 **注意**: 此接口为专用接口，主要供框架内部使用。建议尽可能实现简单的`BeanPostProcessor`接口，或者继承`InstantiationAwareBeanPostProcessorAdapter`，以避免扩展这个接口导致误操作。
 
 在Spring中有
@@ -62,9 +62,19 @@ public Bean getBean(Integer name){
 
 找到对应的方法之后，就可去实例化对象了。在这里Spring并没有简单的调用构造方法去实例化，而是提供了一个策略接口`InstantiationStrategy`，调用对应的实现类去实例化。默认提供了两个实现类`SimpleInstantiationStrategy`和`CglibSubclassingInstantiationStrategy`。前面一个会直接调用对应的方法实例化，后者则会通过cglib实例化一个子类，注入相关的方法回调。
 
-## 构造函数自动装配
+## 构造函数
 
-构造函数的方式与工厂方法极其相似，根据参数找到匹配的构造函数（也是一种方法），后面的流程跟工厂方法相同。不过在这一步中构造方法的获取有所不同。
+构造函数的方式与工厂方法极其相似，根据参数找到匹配的构造函数（也是一种方法），后面的流程跟工厂方法相同。不过在这一步中构造方法的获取有所不同。先通过org.springframework.beans.factory.config.SmartInstantiationAwareBeanPostProcessor#determineCandidateConstructors方法获取候选构造函数，通过此接口来支持构造函数自动装配，比如`@Autowired`注解标记的构造函数。如果没有找到特定的构造函数，则会遍历所有的构造进行匹配。注*`@Autowired`*标注的构造函数只能有一个，如果有这样的构造函数，也会优先使用。
+
+在多个方法匹配的时候，Spring 会做到尽量更接近我们想要使用的方法。我们有时候为了偷懒，会省略一些配置参数，比如`<constructor-arg/>`标签只写`name`和`value`，虽然也可以达到我们的目的，但是Spring为我们多做了一些匹配的工作，也有可能在匹配的过程中不是我们想要的（情况较少）。我们应该尽可能的提供更多的信息，尽可能准确匹配。这样既能提高准确率，也能提高速度。就好比，追女朋友的时候，她有多个想要的礼物，你只能买一个，如果你能从她那里得到更多的提示，那不是能更准确地送出她最想要的礼物吗？不然就只能靠猜了。貌似也有点儿AI的味道在里面？
+
+## 默认构造函数
+
+上面几种方式都没有实例化的话，那只能走默认构造函数来初始化了。实例化的时候也会使用到`InstantiationStrategy`接口。虽然只是简单的调用构造函数来实例化对象，Spring也比我们考虑的多。当Bean定义有方法覆盖时，必须得使用到cglib为生成子类了，注入相关的方法回调。
+
+## 写在最后
+
+这一篇写了挺长时间的，主要是因为方法匹配的情况挺多的，要把每种情况都覆盖到，也不太现实。有时候得边写边调试代码。
 
 
 
