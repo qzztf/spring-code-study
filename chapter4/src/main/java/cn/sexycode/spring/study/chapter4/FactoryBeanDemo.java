@@ -12,6 +12,6 @@ public class FactoryBeanDemo {
         DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
         XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(factory);
         reader.loadBeanDefinitions("classpath:factory.xml");
-        System.out.println(factory.getBean("bean"));
+        System.out.println(factory.getBean("autoConstructBean"));
     }
 }

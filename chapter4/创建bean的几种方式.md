@@ -4,8 +4,8 @@
 
 1. `InstantiationAwareBeanPostProcessor`
 2. `Instance Supplier`
-3. factory method
-4. constructor autowiring
+3. 工厂方法
+4. 构造函数自动装配
 5. simple instantiation
 
 ##  InstantiationAwareBeanPostProcessor
@@ -24,7 +24,7 @@
 
 可以通过`org.springframework.beans.factory.support.BeanDefinitionBuilder#genericBeanDefinition(java.lang.Class<T>, java.util.function.Supplier<T>)`方法来指定。这种方式适用于手动注册Bean。
 
-## factory method
+## 工厂方法
 
 此种方式使用命名工厂方法实例化Bean。该工厂可能是静态方法（通过Bean定义参数指定了一个类）也可能是工厂Bean。
 
@@ -33,10 +33,40 @@
 当备选方法有多个时，就需要猜测用的是哪个方法。可以想象一下影响因素：*首先肯定是方法名，其次是传进来的参数类型，顺序，最后是返回值。* 这里的过程有点儿复杂，类似于我们在写代码时，编绎器为什么可以知道我们调用的是哪一个方法？可以根据方法名，参数类型，顺序明确知道是哪一个方法（实际编绎器做了哪些操作，有兴趣的可以查资料）。
 
 1. 先将方法按照参数个数排序，参数多的靠前。也就是说参数越多，优先级越高。
-2. 遍历每个方法，按照方法参数索引逐个比较参数名称、类型是否匹配。我们可以通过`<constructor-arg name="name" value="1"/>`标签来指定参数， 这一步的匹配会先根据`name`和`type`来判断是否匹配，如果不匹配再判断是不是可以自动注入；匹配上则会尝试类型转换，如果转换出错，也代表着不匹配了。不匹配再尝试下一个方法。匹配上的方法意味着这个方法很有可能就是我们想要调用的方法，再判断一下方法参数与解析出来的参数之间的差异值（Spring 计算出来的一个值），当有多个匹配方法时，这个值越小，代表越匹配。当我们在`getBean`时，如果传了构造参数，那么参数的个数需要完全匹配。如果是通过xml配置的构造参数，则不要求个数完全一致，在上述遍历的过程中，会找到最匹配的方法。
+2. 遍历每个方法，按照方法参数索引逐个比较参数名称、类型是否匹配。我们可以通过`<constructor-arg name="name" value="1"/>`标签来指定参数， 这一步的匹配会先根据`name`和`type`来判断是否匹配，如果不匹配再判断是不是可以自动注入；匹配上则会尝试类型转换，如果转换出错，也代表着不匹配了。不匹配再尝试下一个方法。匹配上的方法意味着这个方法很有可能就是我们想要调用的方法，再判断一下方法参数与解析出来的参数之间的差异值（Spring 计算出来的一个值，根据方法参数类型和实际参数类型），当有多个匹配方法时，这个值越小，代表越匹配。当我们在`getBean`时，如果传了构造参数，那么参数的个数需要完全匹配。如果是通过xml配置的构造参数，则不要求个数完全一致，在上述遍历的过程中，会找到最匹配的方法。
 
+当*构造函数设置宽松模式（默认）时，可能会出现上述所说的多个方法的差异值计算出来相同，这种情况下，会选择最先匹配的方法；严格模式时，则会抛出异常，让我们确认使用哪一个。*
+
+举个例子：
+
+有如下两个工厂方法：
+
+```java
+public Bean getBean(Long name){
+    return new Bean();
+}
+public Bean getBean(Integer name){
+    return new Bean();
+}
+```
+
+如下配置：
+
+```java
+<bean id="bean" class="cn.sexycode.spring.study.chapter4.FactoryBeanBean$Bean" factory-bean="factoryBeanBean" factory-method="getBean">
+    <constructor-arg name="name" value="1"/>
+</bean>
+```
+
+如果配置参数时，不指定类型，则会进行类型转换，这个时候上面的两个方法都将会匹配上。如果是构造函数宽松模式，那么将会使用其中一个（跟方法声明顺序有关）。如果是严格模式，则会报错，需要指定参数类型。
 
 找到对应的方法之后，就可去实例化对象了。在这里Spring并没有简单的调用构造方法去实例化，而是提供了一个策略接口`InstantiationStrategy`，调用对应的实现类去实例化。默认提供了两个实现类`SimpleInstantiationStrategy`和`CglibSubclassingInstantiationStrategy`。前面一个会直接调用对应的方法实例化，后者则会通过cglib实例化一个子类，注入相关的方法回调。
+
+## 构造函数自动装配
+
+构造函数的方式与工厂方法极其相似，根据参数找到匹配的构造函数（也是一种方法），后面的流程跟工厂方法相同。不过在这一步中构造方法的获取有所不同。
+
+
 
 
 
