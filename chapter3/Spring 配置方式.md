@@ -16,8 +16,14 @@
 
 # 注解形式
 
-之前在《bean定义文件解析》一文中提到`ComponentScanBeanDefinitionParser`用来解析`<context:component-scan/>`标签，在解析的过程中会根据规则如注解，`package`，`type`等来扫描对应的bean class。但是这个注解无法对对象属性进行装配，需要结合`<context:annotation-config/>`标签来实现完整的注解配置。
+之前在《bean定义文件解析》一文中提到`ComponentScanBeanDefinitionParser`用来解析`<context:component-scan/>`标签，在解析的过程中会根据规则如注解，`package`，`type`等来扫描对应的注解class，可以设置多个package，用`,; \t\n`进行分割。默认会扫描`@Component`注解的类，也可以配置自己的类型过滤器。但是这个注解无法对对象属性进行装配，需要结合`<context:annotation-config/>`标签来实现完整的注解配置。从Spring 5 开始默认扫描`@Indexed`注解，`@Component`也加上了该注解，因此也会扫描到。
 
 # Java 编程形式
 
-之前在《bean定义文件解析》一文中提到`AnnotationConfigBeanDefinitionParser`用来解析`<context:annotation-config/>`标签，在解析的过程中会注册`ConfigurationClassPostProcessor`，此类实现`BeanDefinitionRegistryPostProcessor`接口，可以在初始化bean之前修改bean定义，在该类中会注册。在此标签的解析过程中还会注册`AutowiredAnnotationBeanPostProcessor`后处理器，该类用来注解装配bean。
+之前在《bean定义文件解析》一文中提到`AnnotationConfigBeanDefinitionParser`用来解析`<context:annotation-config/>`标签，在解析的过程中会注册`ConfigurationClassPostProcessor`，此类实现`BeanDefinitionRegistryPostProcessor`接口，可以在初始化bean之前修改bean定义。
+
+1. 在注解扫描（实际上是已被注册的bean定义）的基础上去筛选`@Configuration`配置类以及轻量级配置类`@Component`、`@ComponentScan` 、`@Import`、`@ImportResource`，以及方法级注解`@Bean`。这里有一点要提一下：`@Configuration`注解也被``@Component`注解修饰，换句话说*被`@Configuration`注解的类也会注册为bean*。
+
+2. 筛选出上述配置类后，接下来需要解析这些类。
+
+在此标签的解析过程中还会注册`AutowiredAnnotationBeanPostProcessor`后处理器，该类用来注解装配bean。
