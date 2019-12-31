@@ -24,6 +24,6 @@
 
 1. 在注解扫描（实际上是已被注册的bean定义）的基础上去筛选`@Configuration`配置类以及轻量级配置类`@Component`、`@ComponentScan` 、`@Import`、`@ImportResource`，以及方法级注解`@Bean`。这里有一点要提一下：`@Configuration`注解也被``@Component`注解修饰，换句话说*被`@Configuration`注解的类也会注册为bean*。
 
-2. 筛选出上述配置类后，接下来需要解析这些类。
+2. 筛选出上述配置类后，接下来需要解析这些类。具体会交给`org.springframework.context.annotation.ConfigurationClassBeanDefinitionReader#loadBeanDefinitions`方法。在此方法会先校验是否需要跳过加载该配置类（这里包括了上述的轻量级配置类），主要通过`@Conditional`注解（4.0新增，Spring Boot用来实现条件注册的核心）来实现，如果需要跳过，则将此Bean定义移除。然后解析该类上的`@Import`注解。
 
 在此标签的解析过程中还会注册`AutowiredAnnotationBeanPostProcessor`后处理器，该类用来注解装配bean。
