@@ -7,6 +7,6 @@
 
 
     <!--    启用注解配置-->
-    <context:annotation-config/>
+<!--    <context:annotation-config/>-->
     <context:component-scan base-package="cn.sexycode.spring.study.chapter3"/>
 </beans>
