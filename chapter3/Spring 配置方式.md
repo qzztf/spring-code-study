@@ -39,7 +39,7 @@
 
 #### AdviceModeImportSelector
 
-这里需要提一下这个类。`@EnableAsync`这个注解，相比很熟悉了。在`@Component`类加上这个注解，我们就可以启用Spring为我们提供的`@Async`异步功能。我们可以看到在`@EnableAsync`上使用了`@Import(AsyncConfigurationSelector.class)`，该类继承自`AdviceModeImportSelector`类，会根据代理模式是`PROXY`还是`ASPECTJ`来导入不同的配置类，使用对应的方式来生成代理对象。前者会使用Jdk代理来实现。`AdviceModeImportSelector`类在导入之前会根据子类声明的注解来获取该注解，如果类上没有这个注解，则会报错。比如`AsyncConfigurationSelector`声明需要`@EnableAsync`注解，如果直接`@Import(AsyncConfigurationSelector)`而没有使用`@EnableAsync`注解时，会抛出异常，从而限制该配置类的使用范围，保证正确性。
+这里需要提一下这个类。`@EnableAsync`这个注解，想必很熟悉了。在`@Component`类加上这个注解，我们就可以启用Spring为我们提供的`@Async`异步功能。我们可以看到在`@EnableAsync`上使用了`@Import(AsyncConfigurationSelector.class)`，该类继承自`AdviceModeImportSelector`类，会根据代理模式是`PROXY`还是`ASPECTJ`来导入不同的配置类，使用对应的方式来生成代理对象。前者会使用Jdk代理来实现。`AdviceModeImportSelector`类在导入之前会根据子类声明的注解来获取该注解，如果类上没有这个注解，则会报错。比如`AsyncConfigurationSelector`声明需要`@EnableAsync`注解，如果直接`@Import(AsyncConfigurationSelector)`而没有使用`@EnableAsync`注解时，会抛出异常，从而限制该配置类的使用范围，保证正确性。
 
 ### ImportBeanDefinitionRegistrar
 
