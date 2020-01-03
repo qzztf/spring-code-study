@@ -49,3 +49,32 @@
 
 最后一种就是普通的配置类，包括上面提交的`@Configuration`等等，也可以直接引入一个普通类，该类也会被注册。
 
+### `@Bean`注解
+
+用该注解标注的方法代表着，该方法会返回一个返回值类型的Bean。方法可以是静态的，也可以是实例方法。最终在解析时，该方法会被解析成*工厂方法*，在实例化Bean时，以工厂方法的形式实例化Bean。
+
+有一点要注意，如果不指定Bean的名字，那么默认将会以方法名作为Bean的名字。存在多个相同名称的方法时，将会出现Bean覆盖的情况。具体逻辑体现在这个方法中：`org.springframework.context.annotation.ConfigurationClassBeanDefinitionReader#isOverriddenByExistingDefinition`。当此方法返回`false`时，新的bean将会覆盖已存在的bean。返回`true`时，会忽略新的bean。
+
+1. 当已存在的bean是配置类中定义的时，同一个配置类中定义的同名Bean(`ConfigurationClassBeanDefinition`)不允许覆盖，不同配置类中定义的同名Bean允许覆盖
+2. 同名的Bean是注解扫描出来的（`ScannedGenericBeanDefinition`），允许覆盖
+3. 高于应用级别的Bean（Role >`BeanDefinition.ROLE_APPLICATION`）允许覆盖应用级别的Bean
+4. 最后判断`BeanDefinitionRegistry`是否是`DefaultListableBeanFactory`，并且`isAllowBeanDefinitionOverriding()`为`false`时，抛出异常。
+5. 其余情况不允许覆盖，直接忽略新bean。
+
+从最后一点可以看出，默认情况下XML注册的bean优先级比编程方式注册的bean优先级高。因为编程方式注册的bean是`ConfigurationClassBeanDefinition`，而xml注册的是`GenericBeanDefinition`，当xml先注册时，编程方式注册的bean满足情况5，会直接忽略。反过来时，满足情况1，会被xml配置覆盖。
+
+# 方式对比
+
+前三种方式，除了载体的区别外是一样的逻辑。这里只比较xml，注解，编码方式。
+
+|                  | XML配置                                                      | 注解配置                                                     | Java编程方式                                                 |
+| ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| Bean定义         | 通过`<bean>`标签                                             | 在实现类上加`@Component`注解，包括被`@Component`注解的注解，如：`@Service`、`@Repository`、`@Controller`等 | `@Configuration`或`@Component`注解的类中`@Bean`方法，在方法中提供实例化逻辑，并返回对象 |
+| Bean名称         | 通过`<bean>`标签的`id`、`name`属性                           | 通过注解的`value`属性定义。默认为小写字母的类名（没有包名）  | 通过`@Bean`的`name`属性指定。默认为方法名                    |
+| Bean装配         | 通过`<property>`子标签或者通过`p`命名空间。                  | 通过成员变量处加`@Autowired`或`@Resource`注解，配合`@Qualifier`限制名称。`@Primary`设置多个同类型的bean时优先使用。 | 在方法入参中使用`@Autowired`，然后代码设置。                 |
+| Bean生命周期方法 | 通过`<bean>`的`init-method`和`destory-method`属性指定方法名，只有指定一个初始化和销毁方法 | 通过在方法上加`@PostConstruct`和`@PreDestory`注解，可以指定多个 | 通过`@Bean`的`initMethod`和`destoryMethod`方法指定。对于初始化方法，直接在方法内部通过代码编写初始化逻辑 |
+| Bean作用范围     | 通过`<bean>`标签的`scope`属性指定                            | 在类上加`@Scope`注解                                         | 在方法上加`@Scope`注解                                       |
+| Bean延迟初始化   | 通过`<bean>`的`lazy-init`属性指定，默认为`default`，继承自`<beans>`的`default-lazy-init`设置，该值默认为`false` | 在类上加`@Lazy`注解                                          | 在方法上加`@Lazy`注解                                        |
+| 适用场景         | 1. Bean实现类来源于第三方库，如`DataSource`等             2.  命名空间的配置，如：`aop`, `context` | 当前项目的实现类                                             | 第三方库和本项目类均可。逻辑可控制，初始化逻辑复杂时优势更明显 |
+| 优点             | 降低代码耦合，容易扩展。修改不需要重新编绎代码。可以清晰表达Bean之间的关系。 | 维护容易，代码量少。编绎期间即可以校验正确性。在类中体现出Bean之间的关系 | 可以精确控制Bean的初始化过程                                 |
+| 缺点             | 查错只能在运行期，查错麻烦。配置与代码相对独立，导致改了一方会影响到另一方。配置文件多了之后难以维护 | 修改需要重新编绎代码                                         | 修改需要重新编绎代码                                         |

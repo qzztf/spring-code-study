@@ -1,12 +1,11 @@
 package cn.sexycode.spring.study.chapter3;
 
-import org.springframework.beans.factory.annotation.Configurable;
-import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 
@@ -24,14 +23,35 @@ public class ContextAnnotationConfigNamespaceHandlerDemo {
     }
 
     public static class SimpleBean{
+        private SeBean seBean;
+
+        public SimpleBean() {
+        }
+
+        public SimpleBean(SeBean seBean) {
+            this.seBean = seBean;
+        }
+    }
+    public static class SeBean{
 
     }
-    @Configuration
+    @Component
     @Import(SimpleBean.class)
     public static class Config{
         @Bean
-        public SimpleBean simpleBean(){
-            return new SimpleBean();
+        public static SimpleBean simpleBean(@Autowired SeBean seBean){
+            return new SimpleBean(seBean);
+        }
+
+        @Bean
+        public  SimpleBean simpleBean1(){
+            return new SimpleBean(seBean());
+        }
+
+        @Bean
+        public SeBean seBean(){
+            System.out.println("aaaaa");
+            return new SeBean();
         }
     }
 }
