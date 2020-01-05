@@ -13,6 +13,7 @@
         <module>chapter2</module>
         <module>chapter3</module>
         <module>chapter4</module>
+        <module>chapter5</module>
     </modules>
 
     <url>http://spring-code-study.sexycode.cn</url>
