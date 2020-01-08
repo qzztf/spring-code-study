@@ -4,6 +4,103 @@
 
 ## 如何使用
 
-使用Spring AOP有以下几种方式：
+Spring 自己实现了一套AOP，使用起来不是太方便。还支持`AspectJ`，不过不完全支持。两种方式都可以使用编程式和xml配置方式。
 
-1. 配置`ProxyFactoryBean`，显式地设置advisors, advice, target等
+使用Spring AOP大概有以下几种方式：
+
+1. 在xml中配置`ProxyFactoryBean`，显式地设置advisors, advice, target等，或以编程方式使用`ProxyFactory`。Spring支持通过 jdk 动态代理和 cglib 来生成代理对象。前者只支持接口，后者可以支持类。
+2. 配置`AutoProxyCreator`，这种方式下，还是如以前一样使用定义的bean，但是从容器中获得的其实已经是代理对象
+3. 通过`<aop:config>`来配置，使用`AspectJ`的语法来定义切入点
+4. 通过`<aop:aspectj-autoproxy>`来配置，使用`AspectJ`的注解来标识通知及切入点
+
+### xml 配置 ProxyFactoryBean
+
+1. 创建通知
+
+   这里以前置通知类型为例。
+
+   ```java
+   public class UserBeforeAdvice implements MethodBeforeAdvice {
+       @Override
+       public void before(Method method, Object[] args, Object target) throws Throwable {
+           System.out.println("Before method advice");
+       }
+   }
+   ```
+
+2. 创建业务代码
+
+   ```java
+   //接口
+   public interface IBusinessService {
+       String sayHello();
+   }
+   
+   //实现类
+   public class BusinessService implements IBusinessService{
+       @Override
+       public String sayHello(){
+           System.out.println("hello");
+           return "hello";
+       }
+   }
+   ```
+
+3. 配置代理类
+
+   ```xml
+   <!--业务实现-->
+   <bean class="cn.sexycode.spring.study.chapter5.BusinessService" id="businessService"/>
+   <!--通知实现-->
+   <bean class="cn.sexycode.spring.study.chapter5.BusinessBeforeAdvice" id="userBeforeAdvice"/>
+   <bean class="org.springframework.aop.framework.ProxyFactoryBean" id="businessProxy">
+       <!--代理的接口-->
+       <property name="interfaces" value="cn.sexycode.spring.study.chapter5.IBusinessService"/>
+       <!--目标对象-->
+       <property name="target" ref="businessService"/>
+       <!--要应用的通知实现-->
+       <property name="interceptorNames" value="userBeforeAdvice"/>
+   </bean>
+   ```
+
+   经过上面的配置，已经将通知织入到代理对象中了，下面直接获取生成的代理对象，再调用方法即可以看到织入的结果。
+
+4. 获取代理对象
+
+   ```java
+   DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+   XmlBeanDefinitionReader xmlBeanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
+   xmlBeanDefinitionReader.loadBeanDefinitions("AopXmlSimpleConfig.xml");
+   //获取代理对象
+   ((IBusinessService) beanFactory.getBean("businessProxy")).sayHello();
+   ```
+
+   这里要注意的是要直接获取代理对象，然后转成我们的接口类型，再调用方法即可。
+
+   输出结果：
+
+   ```
+   //打印的是通知的内容
+   Before method advice
+   //业务代码
+   hello
+   ```
+
+   
+
+
+### 实现方式
+
+这种方式其实跟《AOP的基本概念》一文开头描述的思想类似，为每个业务实现类创建代理对象，只不过这里的织入时机已经可以配置了。
+
+那么Spring 是如何生成代理对象的？又是如何织入通知的？
+
+可以想象一下，在获取bean的时候，初始化所有的通知，并创建代理类，在调用代理对象的方法时调用通知的代码和原对象的方法。
+
+`ProxyFactoryBean`类实现了`FactoryBean`接口。也就是说最终会通过`getObject`方法返回生成的对象。
+
+看一下该类的类图：
+
+![ProxyFactoryBean](Spring AOP基本用法/ProxyFactoryBean.png)
+
+   
