@@ -88,7 +88,6 @@ Spring 自己实现了一套AOP，使用起来不是太方便。还支持`Aspect
 
    
 
-
 ### 实现方式
 
 这种方式其实跟《AOP的基本概念》一文开头描述的思想类似，为每个业务实现类创建代理对象，只不过这里的织入时机已经可以配置了。
@@ -103,4 +102,24 @@ Spring 自己实现了一套AOP，使用起来不是太方便。还支持`Aspect
 
 ![ProxyFactoryBean](Spring AOP基本用法/ProxyFactoryBean.png)
 
-   
+#### getObject 方法
+
+前面讲到了，当Spring初始化此bean时，最终会调用`getObject`方法返回实际的bean。
+
+```java
+public Object getObject() throws BeansException {
+		initializeAdvisorChain();
+		if (isSingleton()) {
+			return getSingletonInstance();
+		}
+		else {
+			if (this.targetName == null) {
+				logger.info("Using non-singleton proxies with singleton targets is often undesirable. " +
+						"Enable prototype proxies by setting the 'targetName' property.");
+			}
+			return newPrototypeInstance();
+		}
+	}
+```
+
+第一步就是初始化切面链，配置此代理时，可以应用多个切面，所以最终会形成一个调用链。如果此bean是单例的，
