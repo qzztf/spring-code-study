@@ -7,7 +7,7 @@
     <bean class="cn.sexycode.spring.study.chapter5.BusinessBeforeAdvice" id="userBeforeAdvice"/>
     <bean class="org.springframework.aop.framework.ProxyFactoryBean" id="businessProxy">
         <property name="interfaces" value="cn.sexycode.spring.study.chapter5.IBusinessService"/>
-        <property name="target" ref="businessService"/>
+        <property name="targetName" value="businessService"/>
         <property name="interceptorNames" value="userBeforeAdvice"/>
     </bean>
 </beans>
