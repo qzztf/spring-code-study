@@ -134,7 +134,7 @@ public Object getObject() throws BeansException {
 
 初始化切面链时，如果之前已经初始化过，将不会再次初始化。初始化时会遍历所有配置的通知，如果是通配符`*`，则会根据类型`Advisor`和`Interceptor`查找所有的bean，并排序，再判断bean的名称是否匹配前缀，是则认为是一个通知，会将其加入到通知链中。如果不是通配符，再判断该bean或者此代理工厂bean是否单例，是的话则会在`BeanFactory`中查找该bean，加入到链中。不是单例则需要将该通知先记录下来，等到最后创建代理对象时，再创建该通知对象。这里为什么需要这样判断是不是单例？这样可以避免在初始化通知链时创建原型对象，这个时候还不需要初化原型通知对象，在最终使用到此对象时再初始化即可。
 
-在添加通知时，由于`intercepterNames`中即可以是`Advice`也可以是`Advisor`，或者是其他自定义的通知类型（实现`Advice`接口），所以需要将通知转换成`Advisor`(可以理解为切面)。如果本身就是`Advisor`，则不需要转换。如果是`Advice`，并且是支持通知类型，则转换成`DefaultPointcutAdvisor`。转换时通过适配器`AdvisorAdapter`来判断是否支持该通知。`ProxyFactoryBean`默认使用`GlobalAdvisorAdapterRegistry.getInstance()`方式获取到默认的适配器注册器，可以替换该注册器，添加自定义的适配器。也可以注册`AdvisorAdapterRegistrationManager`，然后注册实现`AdvisorAdapter`的bean，该后处理器会自动注册自定义的适配器。Spring 默认注册了`MethodBeforeAdviceAdapter`、`AfterReturningAdviceAdapter`、`ThrowsAdviceAdapter`三个适配器。通过适配器最终可以将基于`AspectJ`的通知转换成Spring 的`Advisor`，达到设计上的统一。
+在添加通知时，由于`intercepterNames`中即可以是`Advice`也可以是`Advisor`，或者是其他自定义的通知类型（实现`Advice`接口），所以需要将通知转换成`Advisor`(Spring封装了通知以及通知的适用范围)。如果本身就是`Advisor`，则不需要转换。如果是`Advice`，并且是支持通知类型，则转换成`DefaultPointcutAdvisor`。转换时通过适配器`AdvisorAdapter`来判断是否支持该通知。`ProxyFactoryBean`默认使用`GlobalAdvisorAdapterRegistry.getInstance()`方式获取到默认的适配器注册器，可以替换该注册器，添加自定义的适配器。也可以注册`AdvisorAdapterRegistrationManager`，然后注册实现`AdvisorAdapter`的bean，该后处理器会自动注册自定义的适配器。Spring 默认注册了`MethodBeforeAdviceAdapter`、`AfterReturningAdviceAdapter`、`ThrowsAdviceAdapter`三个适配器。通过适配器最终可以将基于`AspectJ`的通知转换成Spring 的`Advisor`，达到设计上的统一。
 
 #### 单例代理对象
 
@@ -181,11 +181,11 @@ public Object getObject() throws BeansException {
 
 主要的逻辑是`equals`，`hashCode`方法的判断，`Advised`和`DecoratingProxy`接口的判断。这些方法需要特殊处理，如果目标类没有实现`equals`，`hashCode`方法，那么需要去比较原始对象。
 
-接下来需要根据当前调用的方法获取到对应的通知链，如果通知链为空，则表示当前方法不需要拦截，直接调用目标对象的方法就可以了。如果不为空，则表示需要拦截，生成`ReflectiveMethodInvocation`对象，该对象封装了拦截器的调用过程。
+接下来需要根据当前调用的方法获取到对应的拦截器链，如果拦截器链为空，则表示当前方法不需要拦截，直接调用目标对象的方法就可以了。如果不为空，则表示需要拦截，生成`ReflectiveMethodInvocation`对象，该对象封装了拦截器的调用过程。
 
-###### 获取通知链
+###### 获取拦截器链
 
-获取调用方法的通知链，目标对象所有的通知，之前已经初始化过了，但是每个方法所需要的不一样，所以这一步还需要根据方法进行过滤。具体逻辑在`AdvisedSupport.getInterceptorsAndDynamicInterceptionAdvice()`方法中，会将结果缓存下来下次直接使用。
+获取调用方法的拦截器链，目标对象所有的通知，之前已经初始化过了，但是每个方法所需要的不一样，所以这一步还需要根据方法进行过滤。具体逻辑在`AdvisedSupport.getInterceptorsAndDynamicInterceptionAdvice()`方法中，会将结果缓存下来下次直接使用。
 
 ```java
 public List<Object> getInterceptorsAndDynamicInterceptionAdvice(Method method, @Nullable Class<?> targetClass) {
@@ -200,5 +200,89 @@ public List<Object> getInterceptorsAndDynamicInterceptionAdvice(Method method, @
 }
 ```
 
-`AdvisedSupport`通过`AdvisorChainFactory`(默认使用`DefaultAdvisorChainFactory`)创建一个拦截链，针对每个已经注册的`Advisor`，如果是`PointcutAdvisor`，获取到对应的`Pointcut`，再得到其`ClassFilter`，检查是否匹配目标类型，类型检查通过之后再得到`MethodMatcher`进行方法匹配。*在获取拦截链阶段，不过滤方法参数*。
+`AdvisedSupport`通过`AdvisorChainFactory`(默认使用`DefaultAdvisorChainFactory`)创建一个拦截链，针对每个已经注册的`Advisor`，如果是`PointcutAdvisor`，获取到对应的`Pointcut`，再得到其`ClassFilter`，检查是否匹配目标类型，类型检查通过之后再得到`MethodMatcher`进行方法匹配。*在获取拦截链阶段，不过滤方法参数*。如果`MethodMatcher`是运行时的(也就是要比较参数的)，则包装成`InterceptorAndDynamicMethodMatcher`，其内部包含当前`MethodMatcher`，在`ReflectiveMethodInvocation`内方法调用时根据方法调用时的参数再判断该拦截器是否可以拦截此方法。
 
+如果是引入`IntroductionAdvisor`，则只需要过滤class即可。
+
+符合要求的通知会通过`AdvisorAdapter`转换成方法拦截器`MethodInterceptor`。
+
+不同的通知类型有相应的拦截器。比如`MethodBeforeAdvice`有`MethodBeforeAdviceInterceptor`与其对应。
+
+```java
+public class MethodBeforeAdviceInterceptor implements MethodInterceptor, BeforeAdvice, Serializable {
+
+	private final MethodBeforeAdvice advice;
+
+
+	/**
+	 * Create a new MethodBeforeAdviceInterceptor for the given advice.
+	 * @param advice the MethodBeforeAdvice to wrap
+	 */
+	public MethodBeforeAdviceInterceptor(MethodBeforeAdvice advice) {
+		Assert.notNull(advice, "Advice must not be null");
+		this.advice = advice;
+	}
+
+
+	@Override
+	public Object invoke(MethodInvocation mi) throws Throwable {
+		this.advice.before(mi.getMethod(), mi.getArguments(), mi.getThis());
+		return mi.proceed();
+	}
+
+}
+```
+
+在调用该拦截器的invoke方法时，会先调用其持有的advice的before方法，也就是我们的通知方法，然后再继续`MethodInvocation`的方法调用，该设计是常见的链式调用方式。
+
+同理`AfterReturningAdvice`对应的是`AfterReturningAdviceInterceptor`，`ThrowsAdvice`对应`ThrowsAdviceInterceptor`。
+
+###### ReflectiveMethodInvocation 执行拦截器链
+
+在上一步获取拦截器链之后，构造出`ReflectiveMethodInvocation `对象，封装了代理，目标对象，方法，以及拦截器链，然后调用该对象的`proceed`方法。
+
+```java
+public Object proceed() throws Throwable {
+    //	We start with an index of -1 and increment early.
+    if (this.currentInterceptorIndex == this.interceptorsAndDynamicMethodMatchers.size() - 1) {
+        return invokeJoinpoint();
+    }
+
+    Object interceptorOrInterceptionAdvice =
+        this.interceptorsAndDynamicMethodMatchers.get(++this.currentInterceptorIndex);
+    if (interceptorOrInterceptionAdvice instanceof InterceptorAndDynamicMethodMatcher) {
+        // Evaluate dynamic method matcher here: static part will already have
+        // been evaluated and found to match.
+        InterceptorAndDynamicMethodMatcher dm =
+            (InterceptorAndDynamicMethodMatcher) interceptorOrInterceptionAdvice;
+        Class<?> targetClass = (this.targetClass != null ? this.targetClass : this.method.getDeclaringClass());
+        if (dm.methodMatcher.matches(this.method, targetClass, this.arguments)) {
+            return dm.interceptor.invoke(this);
+        }
+        else {
+            // Dynamic matching failed.
+            // Skip this interceptor and invoke the next in the chain.
+            return proceed();
+        }
+    }
+    else {
+        // It's an interceptor, so we just invoke it: The pointcut will have
+        // been evaluated statically before this object was constructed.
+        return ((MethodInterceptor) interceptorOrInterceptionAdvice).invoke(this);
+    }
+}
+```
+
+`ReflectiveMethodInvocation`维护一个当前执行拦截器的下标值`currentInterceptorIndex`，从`-1`开始，如果**等于**拦截器链的**长度-1**，则表示拦截器已经执行完了，调用目标对象的方法。
+
+如果不相等，则会调用拦截器的方法。
+
+1. 获取到第一个拦截器，并将`currentInterceptorIndex`+1。
+2. 如果拦截器是`InterceptorAndDynamicMethodMatcher`类型，则需要进行参数匹配，匹配上则调用该拦截器的方法。否则调用`ReflectiveMethodInvocation`的`proceed`方法，这里是递归调用。最终结束条件就是下标值是拦截器链的**长度-1**。
+3. 如果是普通的`MethodInterceptor`的，则调用`invoke`方法，并将自身传进去。
+
+整个调用过程，其实在`Filter`的使用过程中，我们就已经接触了。在每个过滤器的执行过程中，将链维护对象传递到每个过滤器中，执行完成之后再调用链对象的方法，链对象的方法会继续调用下一个过滤器。如果想终止链的调用，可以不调用链的方法。只不过在这里，我们无法终止。因为Spring将我们编写的通知转换成了对应的拦截器，在拦截器中再去调用通知的代码，我们无法终止链对象的方法调用。不过我们可以自定义通知适配器，实现自定义通知转换的拦截器。
+
+#### CGLIB生成的代理对象
+
+使用`ObjenesisCglibAopProxy`对象来生成cglib代理对象时。`ObjenesisCglibAopProxy`继承了`CglibAopProxy`重写了`createProxyClassAndInstance()`方法，支持不需要通过构造器来实例化对象的功能。
