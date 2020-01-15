@@ -9,5 +9,6 @@
         <property name="interfaces" value="cn.sexycode.spring.study.chapter5.IBusinessService"/>
         <property name="targetName" value="businessService"/>
         <property name="interceptorNames" value="userBeforeAdvice"/>
+        <property name="proxyTargetClass" value="true"/>
     </bean>
 </beans>

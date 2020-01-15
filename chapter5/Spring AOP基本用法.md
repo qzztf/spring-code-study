@@ -4,7 +4,7 @@
 
 ## 如何使用
 
-Spring 自己实现了一套AOP，使用起来不是太方便。还支持`AspectJ`，不过不完全支持。两种方式都可以使用编程式和xml配置方式。
+Spring 自己实现了一套AOP，还部分支持`AspectJ`。两种方式都可以使用编程式和xml配置方式。
 
 使用Spring AOP大概有以下几种方式：
 
@@ -148,7 +148,7 @@ public Object getObject() throws BeansException {
 
 2. 在自动检测接口模式（未指定代理接口里默认为`true`，如果没有指定接口时，将此值设置为`false`来使用cglib创建代理对象）、代理接口未指定、不是代理目标对象的情况下，将获取到目标对象所有的接口，并代理所有接口。
 
-3. 准备工作做完了，接下来就是创建代理对象了。创建之前先激活`AdvisedSupportListener`监听器。这里由默认的`AopProxyFactory`工厂指定了两种创建代理对象的方式，根据情况使用jdk动态代理方式还是cglib方式。满足以下情况时：将使用cglib代理。1). 优化代理，2). 直接代理目标对象，3). 用户没有指定代理接口。在上面提到的3点中，如果代理目标类是接口，或者是jdk代理，则还是会使用jdk代理方式。
+3. 准备工作做完了，接下来就是创建代理对象了。创建之前先激活`AdvisedSupportListener`监听器。这里由默认的`AopProxyFactory`工厂指定了两种创建代理对象的方式，根据情况使用jdk动态代理方式还是cglib方式。满足以下情况时：将使用cglib代理。1). 优化代理（比如说在代理对象创建之后，再更改通知不生效，默认为`false`），2). 直接代理目标对象，3). 用户没有指定代理接口。在上面提到的3点中，如果代理目标类是接口，或者是jdk代理，则还是会使用jdk代理方式。
 
    ```java
    public AopProxy createAopProxy(AdvisedSupport config) throws AopConfigException {
@@ -281,8 +281,91 @@ public Object proceed() throws Throwable {
 2. 如果拦截器是`InterceptorAndDynamicMethodMatcher`类型，则需要进行参数匹配，匹配上则调用该拦截器的方法。否则调用`ReflectiveMethodInvocation`的`proceed`方法，这里是递归调用。最终结束条件就是下标值是拦截器链的**长度-1**。
 3. 如果是普通的`MethodInterceptor`的，则调用`invoke`方法，并将自身传进去。
 
-整个调用过程，其实在`Filter`的使用过程中，我们就已经接触了。在每个过滤器的执行过程中，将链维护对象传递到每个过滤器中，执行完成之后再调用链对象的方法，链对象的方法会继续调用下一个过滤器。如果想终止链的调用，可以不调用链的方法。只不过在这里，我们无法终止。因为Spring将我们编写的通知转换成了对应的拦截器，在拦截器中再去调用通知的代码，我们无法终止链对象的方法调用。不过我们可以自定义通知适配器，实现自定义通知转换的拦截器。
+整个调用过程，其实在`Filter`的使用过程中，我们就已经接触了。在每个过滤器的执行过程中，将链维护对象传递到每个过滤器中，执行完成之后再调用链对象的方法，链对象的方法会继续调用下一个过滤器。如果想终止链的调用，可以不调用链的方法。
 
 #### CGLIB生成的代理对象
 
 使用`ObjenesisCglibAopProxy`对象来生成cglib代理对象时。`ObjenesisCglibAopProxy`继承了`CglibAopProxy`重写了`createProxyClassAndInstance()`方法，支持不需要通过构造器来实例化对象的功能。
+
+cglib生成的代理对象实现aop功能，主要需要设置callback。
+
+可以看一下`getProxy`方法：
+
+```java
+public Object getProxy(@Nullable ClassLoader classLoader) {
+    if (logger.isTraceEnabled()) {
+        logger.trace("Creating CGLIB proxy: " + this.advised.getTargetSource());
+    }
+
+    try {
+        Class<?> rootClass = this.advised.getTargetClass();
+        Assert.state(rootClass != null, "Target class must be available for creating a CGLIB proxy");
+
+        Class<?> proxySuperClass = rootClass;
+        if (ClassUtils.isCglibProxyClass(rootClass)) {
+            proxySuperClass = rootClass.getSuperclass();
+            Class<?>[] additionalInterfaces = rootClass.getInterfaces();
+            for (Class<?> additionalInterface : additionalInterfaces) {
+                this.advised.addInterface(additionalInterface);
+            }
+        }
+
+        // Validate the class, writing log messages as necessary.
+        validateClassIfNecessary(proxySuperClass, classLoader);
+
+        // Configure CGLIB Enhancer...
+        Enhancer enhancer = createEnhancer();
+        if (classLoader != null) {
+            enhancer.setClassLoader(classLoader);
+            if (classLoader instanceof SmartClassLoader &&
+                ((SmartClassLoader) classLoader).isClassReloadable(proxySuperClass)) {
+                enhancer.setUseCache(false);
+            }
+        }
+        enhancer.setSuperclass(proxySuperClass);
+        enhancer.setInterfaces(AopProxyUtils.completeProxiedInterfaces(this.advised));
+        enhancer.setNamingPolicy(SpringNamingPolicy.INSTANCE);
+        enhancer.setStrategy(new ClassLoaderAwareUndeclaredThrowableStrategy(classLoader));
+
+        Callback[] callbacks = getCallbacks(rootClass);
+        Class<?>[] types = new Class<?>[callbacks.length];
+        for (int x = 0; x < types.length; x++) {
+            types[x] = callbacks[x].getClass();
+        }
+        // fixedInterceptorMap only populated at this point, after getCallbacks call above
+        enhancer.setCallbackFilter(new ProxyCallbackFilter(
+            this.advised.getConfigurationOnlyCopy(), this.fixedInterceptorMap, this.fixedInterceptorOffset));
+        enhancer.setCallbackTypes(types);
+
+        // Generate the proxy class and create a proxy instance.
+        return createProxyClassAndInstance(enhancer, callbacks);
+    }
+    catch (CodeGenerationException | IllegalArgumentException ex) {
+        throw new AopConfigException("Could not generate CGLIB subclass of " + this.advised.getTargetClass() +
+                                     ": Common causes of this problem include using a final class or a non-visible class",
+                                     ex);
+    }
+    catch (Throwable ex) {
+        // TargetSource.getTarget() failed
+        throw new AopConfigException("Unexpected AOP exception", ex);
+    }
+}
+```
+
+重点就在`getCallbacks`方法里，将`AdvisedSupport`对象封装成`DynamicAdvisedInterceptor`。另外加了一些性能优化相关的逻辑。`equals`和`hashCode`相关的拦截器，这两个方法是需要特殊处理的。以及是否暴露当前代理对象到当前线程中，可以设置`exposeProxy`属性为`true`，然后通过`AopContext.currentProxy()`方法取得当前代理对象。
+
+这里Spring根据用途将callback拆成了多个:`aopInterceptor`、`EqualsInterceptor`、`HashCodeInterceptor`等，然后为`enhancer`设置`CallbackFilter`决定哪些方法使用对应的callback，每个callback对应一个固定值，`CallbackFilter`返回具体的方法所对应的值。
+
+重点看看`DynamicAdvisedInterceptor`，也就是需要应用通知的拦截器。
+
+该类的逻辑跟jdk代理的类似，将拦截器链封装成一个`CglibMethodInvocation`对象，这个类继承自`ReflectiveMethodInvocation`类，该类的逻辑与父类没有什么大的差别。
+
+#### 原型代理对象
+
+当`ProxyFactoryBean`不是单例时，则需要在每次获取时创建代理对象，创建的过程与单例模式区别不大，主要是每次都需要复制一份配置，通过复制出的配置再去创建代理对象，也就是说每个代理对象拥有的配置都是独立的。
+
+#### 小结
+
+创建代理的过程总结如下图：
+
+![1579080057890](Spring AOP基本用法/ProxyFactoryBean创建代理对象流程.png)
