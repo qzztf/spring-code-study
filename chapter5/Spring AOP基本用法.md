@@ -179,7 +179,7 @@ public Object getObject() throws BeansException {
 
 `JdkDynamicAopProxy`实现了`InvocationHandler`接口，也就是说当代理对象的方法被调用时，`JdkDynamicAopProxy`的`invoke`方法将会被调用，从而通过`invoke`的实现逻辑完成对目标方法调用的拦截。
 
-主要的逻辑是`equals`，`hashCode`方法的判断，`Advised`和`DecoratingProxy`接口的判断。这些方法需要特殊处理，如果目标类没有实现`equals`，`hashCode`方法，那么需要去比较原始对象。
+主要的逻辑是`equals`，`hashCode`方法的判断，`Advised`和`DecoratingProxy`接口的判断。这些方法需要特殊处理，如果目标类实现了`equals`，`hashCode`方法，那么需要去比较原始对象，否则，直接调用代理对象的`equals`和`hashCode`方法就可以了。。
 
 接下来需要根据当前调用的方法获取到对应的拦截器链，如果拦截器链为空，则表示当前方法不需要拦截，直接调用目标对象的方法就可以了。如果不为空，则表示需要拦截，生成`ReflectiveMethodInvocation`对象，该对象封装了拦截器的调用过程。
 
@@ -368,4 +368,23 @@ public Object getProxy(@Nullable ClassLoader classLoader) {
 
 创建代理的过程总结如下图：
 
-![1579080057890](Spring AOP基本用法/ProxyFactoryBean创建代理对象流程.png)
+![ProxyFactoryBean创建代理对象流程](Spring AOP基本用法/ProxyFactoryBean创建代理对象流程.png)
+
+执行过程如下：
+
+![调用过程](Spring AOP基本用法/代理调用过程.png)
+
+## 代理属性配置
+
+在前面提到了`ProxyFactoryBean`顶层继承了`ProxyConfig`类，该类提供了一些基础属性配置。下面看一下具体有哪些属性以及其作用。
+
+| 属性             | 说明                                                         |
+| ---------------- | ------------------------------------------------------------ |
+| proxyTargetClass | 是否直接代理目标类，而不只是代理特定的接口。默认设置是`false`。将其设置为`true`，以强制对目标类进行代理。如果目标类是接口，则将为给定接口创建JDK代理。如果目标类是任何其他类，那么将为给定的类创建一个CGLIB代理。 |
+| optimize         | 代理是否应该执行积极的优化。“积极的优化”的确切含义在不同的代理之间会有所不同，默认设置是`false`。例如，优化通常意味着在创建代理之后将不能更改通知。由于这个原因，优化在默认情况下是禁用的。 |
+| opaque           | 是否应阻止将此配置创建的代理转换为`Advised`来查询代理状态。默认值是`false`，这意味着任何AOP代理都可以被强制转换为`Advised`的，因为会给代理对象加上`Advised`接口。 |
+| exposeProxy      | 设置AOP框架是否应该将代理公开为ThreadLocal，以便通过AopContext类获取代理。如果`Advised`的对象需要调用自己另一个被拦截的方法时可以使用这种方式。(如果使用`this`，将不会拦截调用)。默认为“false”，以避免不必要的拦截。尽量不使用此种方式，因为依赖于Spring Aop。 |
+| frozen           | 设置这个配置是否应该被冻结。当一个配置被冻结时，无法更改通知。这对于性能优化非常有用，当我们不希望调用者能够在强制转换为`Advised`后操作配置时也非常有用。 |
+
+
+
