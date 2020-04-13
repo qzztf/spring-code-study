@@ -8,7 +8,7 @@ Spring 自己实现了一套AOP，还部分支持`AspectJ`。两种方式都可�
 
 使用Spring AOP大概有以下几种方式：
 
-1. 在xml中配置`ProxyFactoryBean`，显式地设置advisors, advice, target等，或以编程方式使用`ProxyFactory`。Spring支持通过 jdk 动态代理和 cglib 来生成代理对象。前者只支持接口，后者可以支持类。
+1. 在xml中配置`ProxyFactoryBean`，显式地设置advisors, advice, target等，或以编程方式使用`ProxyFactory`。Spring支持通过 jdk 动态代理和 cglib 来生成代理对象。前者只支持接口，后者可以支持类。还可以以编程形式配置`AspectJProxyFactory`, 该类基于apsectj语法来配置切面。
 2. 配置`AutoProxyCreator`，这种方式下，还是如以前一样使用定义的bean，但是从容器中获得的其实已经是代理对象
 3. 通过`<aop:config>`来配置，使用`AspectJ`的语法来定义切入点
 4. 通过`<aop:aspectj-autoproxy>`来配置，使用`AspectJ`的注解来标识通知及切入点

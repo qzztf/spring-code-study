@@ -19,7 +19,7 @@
     <url>http://spring-code-study.sexycode.cn</url>
     <properties>
         <spring.version>5.1.3.RELEASE</spring.version>
-        <java.version>9</java.version>
+        <java.version>11</java.version>
     </properties>
 
     <build>
