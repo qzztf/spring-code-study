@@ -26,4 +26,14 @@
 
 ![AbstractAutoProxyCreator](./AbstractAutoProxyCreator.png)
 
-从上图中可以看到此类实现了`SmartInstantiationAwareBeanPostProcessor`接口，该接口在前面Bean的初始化中讲到过，如果`postProcessBeforeInstantiation`方法返回了非`null`对象，则将会打断原bean的初始化过程，从而使用该方法返回的对象。
+从上图中可以看到此类实现了`SmartInstantiationAwareBeanPostProcessor`接口，该接口在前面*Bean的初始化中*讲到过，如果`postProcessBeforeInstantiation`方法返回了非`null`对象，则将会打断原bean的初始化过程，从而使用该方法返回的对象。
+
+### `postProcessBeforeInstantiation`方法
+
+这是创建Aop代理的核心入口。我们猜想一下如何创建？
+
+1. 判断是否需要创建
+2. 判断之前是否创建过
+3. 找到目标对象所有匹配的通知
+4. 有了通知，剩下的就是通过之前的创建代理的方式来创建。
+
