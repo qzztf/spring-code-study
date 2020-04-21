@@ -5,7 +5,7 @@
 
     <bean id="businessService" class="cn.sexycode.spring.study.chapter5.BusinessService"/>
     <bean id="logAspect" class="cn.sexycode.spring.study.chapter5.LogAspect"/>
-    <aop:aspectj-autoproxy/>
+<!--    <aop:aspectj-autoproxy/>-->
     <aop:config>
         <aop:aspect id="log" ref="logAspect">
             <aop:before method="log" pointcut="execution(* cn.sexycode.spring.study.chapter5.BusinessService.sayHello())"/>
