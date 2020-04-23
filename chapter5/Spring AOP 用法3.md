@@ -26,14 +26,75 @@
 
 ![AbstractAutoProxyCreator](./AbstractAutoProxyCreator.png)
 
-从上图中可以看到此类实现了`SmartInstantiationAwareBeanPostProcessor`接口，该接口在前面*Bean的初始化中*讲到过，如果`postProcessBeforeInstantiation`方法返回了非`null`对象，则将会打断原bean的初始化过程，从而使用该方法返回的对象。
+从上图中可以看到此类实现了`SmartInstantiationAwareBeanPostProcessor`接口，该接口在前面*Bean的初始化中*讲到过，如果`postProcessBeforeInstantiation`方法返回了非`null`对象，则将会打断原bean的初始化过程，从而使用该方法返回的对象。如果上面的方法返回`null`，那么将走常规初始化对象方式，初始化对象之后将调用`postProcessAfterInitialization`方法，在此方法中可以根据需要返回代理对象。
 
-### `postProcessBeforeInstantiation`方法
-
-这是创建Aop代理的核心入口。我们猜想一下如何创建？
+我们猜想一下如何创建？
 
 1. 判断是否需要创建
 2. 判断之前是否创建过
 3. 找到目标对象所有匹配的通知
-4. 有了通知，剩下的就是通过之前的创建代理的方式来创建。
+4.  有了通知，剩下的就是通过之前的创建代理的方式来创建。
 
+###  postProcessBeforeInstantiation 方法
+
+此方法将会在进行常规化实例bean时执行，如果不需要阻断初始化流程，则需要返回`null`。在这个方法实现中提供了一个自定义目标对象获取方式的机会，即`TargetSourceCreator`，如果注册了该接口的实现类并且返回非`null`目标对象，那么将在`postProcessBeforeInstantiation`方法中创建代理对象。如果没有注册或者注册的`TargetSourceCreator`实现都返回`null`，那么不会在`postProcessBeforeInstantiation`方法中创建代理对象，走常规初始化流程。初始化bean之后还有机会再次修改bean实例。
+
+默认直接从Spring 工厂中拿对应的bean实例，并不会在此处实现自定义`TargetSourceCreator`接口。
+
+```java
+Object cacheKey = getCacheKey(beanClass, beanName);
+if (!StringUtils.hasLength(beanName) || !this.targetSourcedBeans.contains(beanName)) {
+    if (this.advisedBeans.containsKey(cacheKey)) {
+        return null;
+    }
+    if (isInfrastructureClass(beanClass) || shouldSkip(beanClass, beanName)) {
+        this.advisedBeans.put(cacheKey, Boolean.FALSE);
+        return null;
+    }
+}
+TargetSource targetSource = getCustomTargetSource(beanClass, beanName);
+if (targetSource != null) {
+    if (StringUtils.hasLength(beanName)) {
+        this.targetSourcedBeans.add(beanName);
+    }
+    Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(beanClass, beanName, targetSource);
+    Object proxy = createProxy(beanClass, beanName, specificInterceptors, targetSource);
+    this.proxyTypes.put(cacheKey, proxy.getClass());
+    return proxy;
+}
+```
+
+### postProcessAfterInitialization 方法
+
+在前面的方法中如果返回了`null`，那么将会继续初始化bean。初始化之后将调用`BeanPostProcessor.postProcessAfterInitialization`方法。`AbstractAutoProxyCreator`将在此方法中创建代理对象。这里有个小地方要注意，因为在实例化的过程中，如果是要提前暴露出来的bean，将会提前加入到`singletonFactories` map中，在获取这个bean的时候将会调用`getEarlyBeanReference`方法，也就是说可能需要在这个方法中创建代理对象，所以如果已经在`getEarlyBeanReference`方法中创建了，那么在`postProcessAfterInitialization`方法中就不需要再创建一次了。
+
+```java
+if (bean != null) {
+    Object cacheKey = getCacheKey(bean.getClass(), beanName);
+    if (!this.earlyProxyReferences.contains(cacheKey)) {
+        return wrapIfNecessary(bean, beanName, cacheKey);
+    }
+}
+return bean;
+```
+
+### getEarlyBeanReference 方法
+
+在提前暴露bean时会调用此方法。
+
+```java
+@Override
+public Object getEarlyBeanReference(Object bean, String beanName) {
+    Object cacheKey = getCacheKey(bean.getClass(), beanName);
+    if (!this.earlyProxyReferences.contains(cacheKey)) {
+        this.earlyProxyReferences.add(cacheKey);
+    }
+    return wrapIfNecessary(bean, beanName, cacheKey);
+}
+```
+
+### 判断是否需要创建
+
+看过了上面3个入口的代码，主要用`isInfrastructureClass(beanClass) `和 `shouldSkip(beanClass, beanName)`两个方法来判断。
+
+`isInfrastructureClass`用来判断该类是不是基础类，包括`Advice`、`Pointcut`、`Advisor`和`AopInfrastructureBean` 这些aop基础接口实现类，这些类的对象不应该被代理。
