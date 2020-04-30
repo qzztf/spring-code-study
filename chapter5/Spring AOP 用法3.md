@@ -121,3 +121,16 @@ public Object getEarlyBeanReference(Object bean, String beanName) {
 
    
 
+由于有三个入口可以用来创建代理对象，因此要保证只创建一次，所以用了上面的方式。
+
+下面看一下完整的流程图：
+
+![AbstractAutoProxyCreator创建代理对象流程图](AbstractAutoProxyCreator创建代理对象流程图.png)
+
+###  getAdvicesAndAdvisorsForBean 方法
+
+此方法用来查找当前bean匹配的通知，是一个抽象方法，需要子类去实现具体的查找逻辑。
+
+查到到之后将通知的拦截器转换为Spring 的`Advisor`，这个转换过程中，可以预先配置通用的拦截器，可以在每个bean中生效，
+
+具体的转换方法是org.springframework.aop.framework.adapter.AdvisorAdapterRegistry#wrap()。
