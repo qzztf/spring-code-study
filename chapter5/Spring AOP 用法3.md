@@ -133,4 +133,12 @@ public Object getEarlyBeanReference(Object bean, String beanName) {
 
 查到到之后将通知的拦截器转换为Spring 的`Advisor`，这个转换过程中，可以预先配置通用的拦截器，可以在每个bean中生效，
 
-具体的转换方法是org.springframework.aop.framework.adapter.AdvisorAdapterRegistry#wrap()。
+具体的转换方法是`org.springframework.aop.framework.adapter.AdvisorAdapterRegistry#wrap()`。
+
+## 子类 BeanNameAutoProxyCreator
+
+通过配置bean 名称过滤需要代理的bean并为其创建代理。
+
+该类只能通过`interceptorNames`属性指定应用于所有匹配bean的拦截器名称，设置`beanNames`来配置要代理的bean，可能指定通配符`*`，如果需要为`FactoryBean`对象创建代理，需要加上`&`标记。
+
+如果bean能匹配上，则`getAdvicesAndAdvisorsForBean`将返回`PROXY_WITHOUT_ADDITIONAL_INTERCEPTORS`，这是一个空数组，也就是说这个方法将不会返回额外的拦截器，但是会创建代理对象。
