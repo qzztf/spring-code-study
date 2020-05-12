@@ -142,3 +142,22 @@ public Object getEarlyBeanReference(Object bean, String beanName) {
 该类只能通过`interceptorNames`属性指定应用于所有匹配bean的拦截器名称，设置`beanNames`来配置要代理的bean，可能指定通配符`*`，如果需要为`FactoryBean`对象创建代理，需要加上`&`标记。
 
 如果bean能匹配上，则`getAdvicesAndAdvisorsForBean`将返回`PROXY_WITHOUT_ADDITIONAL_INTERCEPTORS`，这是一个空数组，也就是说这个方法将不会返回额外的拦截器，但是会创建代理对象。
+
+## 子类 AbstractAdvisorAutoProxyCreator
+
+> 通用的自动代理创建器，基于每个bean检测到的advisor为特定bean构建AOP代理。
+> 子类必须实现抽象`findCandidateAdvisors()`方法，以返回应用于任何对象的顾问列表。子类还可以重写继承的shouldSkip方法，以从自动代理中排除某些对象。
+> 需要排序的通知应该实现`org.springframework.core.Ordered`接口。该类按`Ordered`的`order`值对通知进行排序，未实现`Ordered`接口的通知将被认为是无序的，它们将以未定义的顺序出现在advisor链的末尾。
+
+这个类实现了`getAdvicesAndAdvisorsForBean`方法，并提供了新的模板方法供子类去实现。主要是`findCandidateAdvisors`方法用来查找所有候选的`Advisor`，`findAdvisorsThatCanApply`方法用来筛选能匹配的`Advisor`，`extendAdvisors`方法用来注册额外的`Advisor`，`sortAdvisors`方法用来对`Advisor`进行排序。
+
+### findCandidateAdvisors方法
+
+该方法用来查找`Advisor`实现类，默认使用工具类`BeanFactoryAdvisorRetrievalHelper`，最重要的一行代码是
+
+```java
+advisorNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
+      this.beanFactory, Advisor.class, true, false);
+```
+
+在beanFactory中查找所有`Advisor`实现类。
