@@ -160,4 +160,45 @@ advisorNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
       this.beanFactory, Advisor.class, true, false);
 ```
 
-在beanFactory中查找所有`Advisor`实现类。
+在beanFactory中查找所有`Advisor`实现类的Bean名称，然后再循环调用beanFactory的getBean()方法初始化advisor。
+
+并定义了`volatile`修饰的`cachedAdvisorBeanNames`变量将找到的Advisor bean缓存起来，以便下次直接使用。
+
+### findAdvisorsThatCanApply方法
+
+此方法用于匹配当前目标对象和上一步中找到的Advisor。
+
+先使用线程变量将当前bean暴露出来。
+
+```java
+ProxyCreationContext.setCurrentProxiedBeanName(beanName)
+```
+
+再使用`AopUtils.findAdvisorsThatCanApply(candidateAdvisors, beanClass)`方法返回匹配的Advisor。
+
+一些通用的方法都抽出放到了`AopUtils`这个工具类中。
+
+在Spring AOP 中可以分为两种Advisor：`IntroductionAdvisor`和`PointcutAdvisor`。一种用来增强类（为对象引入新的接口），另一种用来增强具体的方法。
+
+匹配流程：![advisor匹配过程](advisor匹配过程.png)
+
+从上面的流程图中可以看出，主要的步骤是遍历Advisor，再调用`IntroductionAdvisor`的ClassFilter的matches方法或者PointcutAdvisor的MethodMatcher的match方法，前者针对class级别的增强，后者为方法级别的增强。
+
+### extendAdvisors方法
+
+在上一步中已经找到了匹配的advisor，此方法用于子类去扩展，添加其他的advisor。
+
+### sortAdvisors方法
+
+根据`@Order`注解或者`Ordered`接口将advisor排序。
+
+## 子类 AspectJAwareAdvisorAutoProxyCreator
+
+`AbstractAdvisorAutoProxyCreator`的子类，暴露出AspectJ的调用上下文，并解析当多个通知来自同一切面时AspectJ的通知优先级规则。
+
+### sortAdvisors方法
+
+按AspectJ优先级对其余的进行排序。如果两个通知来自同一个Aspect，它们的顺序也会相同。来自同一Aspect的通知将根据以下规则进一步排序:
+如果这一对中的任何一个在通知之后，那么最后声明的通知优先级最高(最后运行)
+否则，先声明的通知优先级最高(先运行)
+重要提示:顾问按优先级排序，从优先级最高到最低。在到达连接点的“过程中”，优先级最高的advisor应该首先运行。在连接点“退出”时，优先级最高的顾问应该最后运行。
