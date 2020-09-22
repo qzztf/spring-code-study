@@ -194,11 +194,24 @@ ProxyCreationContext.setCurrentProxiedBeanName(beanName)
 
 ## 子类 AspectJAwareAdvisorAutoProxyCreator
 
-`AbstractAdvisorAutoProxyCreator`的子类，暴露出AspectJ的调用上下文，并解析当多个通知来自同一切面时AspectJ的通知优先级规则。
+`AbstractAdvisorAutoProxyCreator`的子类，暴露出`AspectJ`的调用上下文，并解析当多个通知来自同一切面时`AspectJ`的通知优先级规则。
 
-### sortAdvisors方法
+### sortAdvisors 方法
 
-按AspectJ优先级对其余的进行排序。如果两个通知来自同一个Aspect，它们的顺序也会相同。来自同一Aspect的通知将根据以下规则进一步排序:
-如果这一对中的任何一个在通知之后，那么最后声明的通知优先级最高(最后运行)
-否则，先声明的通知优先级最高(先运行)
-重要提示:顾问按优先级排序，从优先级最高到最低。在到达连接点的“过程中”，优先级最高的advisor应该首先运行。在连接点“退出”时，优先级最高的顾问应该最后运行。
+按`AspectJ`优先级对通知进行排序。如果两个通知来自同一个`Aspect`，它们的顺序也会相同。来自同一`Aspect`的通知将根据以下规则进一步排序:
+如果这一对中的任何一个是 `after advice`，那么最后声明的通知优先级最高(最后运行)。否则，先声明的通知优先级最高(先运行)。
+**重要提示: `advisor`按优先级排序，从优先级最高到最低。在连接点之前，优先级最高的`advisor`先运行。在连接点之后，优先级最高的顾问最后运行。**
+
+### extendAdvisors 方法
+
+添加`ExposeInvocationInterceptor` 到通知链开头。它将当前`MethodInvocation`对象公开为线程变量。我们偶尔需要这样的功能，例如，当切入点(例如`AspectJ`表达式切入点)需要知道完整的调用上下文时。除非真的有这个必要，一般不需要使用这个拦截器。
+
+## 子类 AnnotationAwareAspectJAutoProxyCreator
+
+继承自`AspectJAwareAdvisorAutoProxyCreator`，用来处理当前应用程序上下文中所有`AspectJ`注解声明的`Aspect`，以及Spring `Advisor`。
+
+任何`AspectJ`注释的类都会被自动识别，如果Spring AOP的基于代理的模型能够应用它们，它们的建议就会被应用。这包括方法执行连接点。
+
+如果& lt; aop: include&gt;元素使用时，只有名称与包含模式匹配的@AspectJ bean才会被认为定义了用于Spring自动代理的方面。
+
+Spring顾问的处理遵循在org.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator中建立的规则
