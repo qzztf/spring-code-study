@@ -210,8 +210,11 @@ ProxyCreationContext.setCurrentProxiedBeanName(beanName)
 
 继承自`AspectJAwareAdvisorAutoProxyCreator`，用来处理当前应用程序上下文中所有`AspectJ`注解声明的`Aspect`，以及Spring `Advisor`。
 
-任何`AspectJ`注释的类都会被自动识别，如果Spring AOP的基于代理的模型能够应用它们，它们的建议就会被应用。这包括方法执行连接点。
+如果使用了`<aop:include>`元素，只有名称与正则匹配的@AspectJ bean 才会用于AOP。
 
-如果& lt; aop: include&gt;元素使用时，只有名称与包含模式匹配的@AspectJ bean才会被认为定义了用于Spring自动代理的方面。
+### findCandidateAdvisors 方法
 
-Spring顾问的处理遵循在org.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator中建立的规则
+此方法先调用父类的方法处理常规的Advisor，以此支持上面提到过的AOP声明方式。
+
+再由`BeanFactoryAspectJAdvisorsBuilder`获取通过AspecJ注解声明的Advisor。
+
