@@ -69,5 +69,8 @@ again
 
 ## 暴露代理对象
 
-Spring 给我们提供了一个工具类`org.springframework.aop.framework.AopContext#currentProxy`可以获取当前调用的代理对象。
+Spring 给我们提供了一个工具类`org.springframework.aop.framework.AopContext#currentProxy`可以获取当前调用的代理对象。**但是需要我们暴露出代理对象，如：`<aop:aspectj-autoproxy expose-proxy="true">`**
 
+## 将两个方法拆分到不同的对象中
+
+这个很好理解，拆分出去后调用的是两个代理对象的方法，也就可以被拦截。
